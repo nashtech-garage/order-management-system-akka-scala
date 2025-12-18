@@ -1,0 +1,12 @@
+*/target
+**/target/
+*.class
+*.iml
+*.ipr
+*.iws
+.idea
+out
+target
+project/project/target
+*.log
+.bsp
