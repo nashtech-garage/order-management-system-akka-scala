@@ -1,0 +1,6 @@
+<div class="loader-container" [class.fullscreen]="fullscreen()">
+  <div class="spinner" [style.width.px]="size()" [style.height.px]="size()"></div>
+  @if (message()) {
+    <p class="message">{{ message() }}</p>
+  }
+</div>

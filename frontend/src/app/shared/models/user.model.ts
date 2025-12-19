@@ -23,3 +23,11 @@ export interface LoginResponse {
   token: string;
   user: User;
 }
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
