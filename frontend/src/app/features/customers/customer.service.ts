@@ -5,7 +5,7 @@ import { API_ENDPOINTS } from '@core/constants/api-endpoints';
 import { Customer, CreateCustomerRequest } from '@shared/models/customer.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CustomerService {
   private apiService = inject(ApiService);

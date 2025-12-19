@@ -10,25 +10,27 @@ import { Component } from '@angular/core';
       </div>
     </footer>
   `,
-  styles: [`
-    .footer {
-      background-color: #1f2937;
-      color: #9ca3af;
-      padding: 1.5rem 2rem;
-      margin-top: auto;
-    }
-    
-    .footer-content {
-      text-align: center;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    p {
-      margin: 0;
-      font-size: 0.875rem;
-    }
-  `]
+  styles: [
+    `
+      .footer {
+        background-color: #1f2937;
+        color: #9ca3af;
+        padding: 1.5rem 2rem;
+        margin-top: auto;
+      }
+
+      .footer-content {
+        text-align: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.875rem;
+      }
+    `,
+  ],
 })
 export class FooterComponent {
   currentYear = new Date().getFullYear();

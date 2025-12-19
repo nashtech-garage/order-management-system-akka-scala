@@ -5,7 +5,7 @@ import { API_ENDPOINTS } from '@core/constants/api-endpoints';
 import { Payment, CreatePaymentRequest } from '@shared/models/payment.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PaymentService {
   private apiService = inject(ApiService);

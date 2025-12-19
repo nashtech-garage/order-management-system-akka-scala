@@ -5,7 +5,7 @@ import { API_ENDPOINTS } from '@core/constants/api-endpoints';
 import { LoginRequest, LoginResponse, User } from '@shared/models/user.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private apiService = inject(ApiService);

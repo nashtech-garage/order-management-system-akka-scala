@@ -20,24 +20,26 @@ import { SidebarComponent } from '@layout/sidebar/sidebar.component';
       <app-footer></app-footer>
     </div>
   `,
-  styles: [`
-    .app-container {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    
-    .main-content {
-      display: flex;
-      flex: 1;
-    }
-    
-    .content {
-      flex: 1;
-      padding: 2rem;
-      background-color: #f9fafb;
-      overflow-y: auto;
-    }
-  `]
+  styles: [
+    `
+      .app-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .main-content {
+        display: flex;
+        flex: 1;
+      }
+
+      .content {
+        flex: 1;
+        padding: 2rem;
+        background-color: #f9fafb;
+        overflow-y: auto;
+      }
+    `,
+  ],
 })
 export class MainLayoutComponent {}

@@ -5,7 +5,7 @@ import { catchError, throwError } from 'rxjs';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
-  
+
   return next(req).pipe(
     catchError((error) => {
       if (error.status === 401) {
@@ -18,8 +18,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // Internal server error
         console.error('Server error occurred');
       }
-      
+
       return throwError(() => error);
-    })
+    }),
   );
 };

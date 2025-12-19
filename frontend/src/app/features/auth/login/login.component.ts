@@ -15,9 +15,9 @@ import { ButtonComponent } from '@shared/components/button/button.component';
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
           <div class="form-group">
             <label for="username">Username</label>
-            <input 
-              id="username" 
-              type="text" 
+            <input
+              id="username"
+              type="text"
               formControlName="username"
               placeholder="Enter your username"
             />
@@ -25,12 +25,12 @@ import { ButtonComponent } from '@shared/components/button/button.component';
               <span class="error">Username is required</span>
             }
           </div>
-          
+
           <div class="form-group">
             <label for="password">Password</label>
-            <input 
-              id="password" 
-              type="password" 
+            <input
+              id="password"
+              type="password"
               formControlName="password"
               placeholder="Enter your password"
             />
@@ -38,75 +38,74 @@ import { ButtonComponent } from '@shared/components/button/button.component';
               <span class="error">Password is required</span>
             }
           </div>
-          
-          <app-button 
-            type="submit" 
-            [disabled]="loginForm.invalid"
-            variant="primary">
+
+          <app-button type="submit" [disabled]="loginForm.invalid" variant="primary">
             Login
           </app-button>
         </form>
       </div>
     </div>
   `,
-  styles: [`
-    .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background-color: #f3f4f6;
-    }
-    
-    .login-card {
-      background: white;
-      padding: 2rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 400px;
-    }
-    
-    h2 {
-      margin-bottom: 1.5rem;
-      text-align: center;
-      color: #1f2937;
-    }
-    
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      color: #374151;
-      font-weight: 500;
-    }
-    
-    input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.375rem;
-      
-      &:focus {
-        outline: none;
-        border-color: #3b82f6;
+  styles: [
+    `
+      .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f3f4f6;
       }
-    }
-    
-    .error {
-      color: #ef4444;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-    }
-    
-    app-button {
-      width: 100%;
-      margin-top: 1rem;
-    }
-  `]
+
+      .login-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+
+      h2 {
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: #1f2937;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #374151;
+        font-weight: 500;
+      }
+
+      input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+
+        &:focus {
+          outline: none;
+          border-color: #3b82f6;
+        }
+      }
+
+      .error {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+      }
+
+      app-button {
+        width: 100%;
+        margin-top: 1rem;
+      }
+    `,
+  ],
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
@@ -115,7 +114,7 @@ export class LoginComponent {
 
   loginForm = this.fb.group({
     username: ['', Validators.required],
-    password: ['', Validators.required]
+    password: ['', Validators.required],
   });
 
   onSubmit() {
@@ -127,7 +126,7 @@ export class LoginComponent {
         },
         error: (error) => {
           console.error('Login failed', error);
-        }
+        },
       });
     }
   }
