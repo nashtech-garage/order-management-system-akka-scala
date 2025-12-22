@@ -1,0 +1,36 @@
+# Editor configuration, see https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = lf
+max_line_length = 100
+
+[*.ts]
+quote_type = single
+ij_typescript_use_double_quotes = false
+ij_typescript_spaces_within_imports = true
+
+[*.html]
+indent_size = 2
+max_line_length = 120
+
+[*.scss]
+indent_size = 2
+
+[*.css]
+indent_size = 2
+
+[*.json]
+indent_size = 2
+
+[*.md]
+max_line_length = off
+trim_trailing_whitespace = false
+
+[{package.json,*.yml}]
+indent_size = 2

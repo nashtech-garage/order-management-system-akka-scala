@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build outputs
+dist
+.angular
+out-tsc
+tmp
+temp
+
+# IDEs
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Misc
+coverage
+.nyc_output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
