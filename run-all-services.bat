@@ -26,10 +26,16 @@ echo Starting User Service...
 start "User Service" cmd /k "cd /d %~dp0user-service && sbt run"
 timeout /t 10 /nobreak >nul
 
-echo Starting API Gateway (last)...
+echo Starting API Gateway...
 start "API Gateway" cmd /k "cd /d %~dp0api-gateway && sbt run"
+timeout /t 15 /nobreak >nul
+
+echo Starting Frontend (Angular)...
+start "Frontend" cmd /k "cd /d %~dp0frontend && npm start"
 
 echo.
 echo All services started!
+echo Frontend will be available at http://localhost:4200
+echo API Gateway is available at http://localhost:8080
 echo.
 pause
