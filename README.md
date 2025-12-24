@@ -4,32 +4,40 @@ A full-stack microservices-based Order Management System built with **Scala/Akka
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│               Angular Frontend (:4200)                       │
-│          (SSR, Tailwind CSS, RxJS)                          │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/REST
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  API Gateway (:8080)                         │
-│            (Routing, HTTP/2, CORS)                          │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-    ┌──────────┬──────────┼──────────┬──────────┬───────────┐
-    ▼          ▼          ▼          ▼          ▼           ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-│ User   │ │Customer│ │Product │ │ Order  │ │Payment │ │Report  │
-│ :8081  │ │ :8082  │ │ :8083  │ │ :8084  │ │ :8085  │ │ :8086  │
-└───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘
-    │          │          │          │          │          │
-    ▼          ▼          ▼          ▼          ▼          │
-┌──────────────────────────────────────────────────────────────┐
-│              PostgreSQL 16 (:5433)                           │
-│  oms_users | oms_customers | oms_products | oms_orders       │
-│  oms_payments                                                │
-└──────────────────────────────────────────────────────────────┘
-```
+![System Architecture](design-architecture.png)
+
+The Order Management System (OMS) is designed using a modern **Microservices Architecture**, ensuring high scalability, loose coupling, and independent deployability. The system is divided into four main layers:
+
+### 1. Frontend Layer
+- **Angular Web App**: A responsive, single-page application (SPA) built with **Angular 20**, **Tailwind CSS**, and **RxJS**.
+- **Server-Side Rendering (SSR)**: Enabled for improved performance and SEO optimization.
+- **Communication**: Interacts with the backend via secure **HTTPS/REST** APIs.
+
+### 2. API Gateway Layer
+- **API Gateway**: The single entry point for all external traffic. It routes requests to the appropriate microservices using **Akka HTTP**.
+- **Responsibilities**:
+  - Request Routing & Load Balancing
+  - Protocol Translation (HTTP/1.1 to HTTP/2)
+  - Cross-Origin Resource Sharing (CORS) handling
+
+### 3. Business Services Layer (Backend)
+The backend logic is partitioned into domain-specific microservices built with **Scala** and **Akka**:
+
+- **User Service** (`:8081`): Manages user identities, authentication, and authorization.
+- **Customer Service** (`:8082`): Handles customer profiles, address books, and preferences.
+- **Product Service** (`:8083`): Manages the product catalog, categories, and stock inventory.
+- **Order Service** (`:8084`): Core service for order placement, status tracking, and lifecycle management.
+- **Payment Service** (`:8085`): Securely processes payments and manages transaction records.
+- **Report Service** (`:8086`): Generates analytics and business intelligence reports.
+
+### 4. Data Layer
+The system employs a **Database-per-Service** pattern using a **PostgreSQL Cluster** to ensure data isolation and improved fault tolerance:
+
+- **user_db**: Dedicated to User Service.
+- **customer_db**: Dedicated to Customer Service.
+- **product_db**: Dedicated to Product Service.
+- **order_db**: Dedicated to Order Service.
+- **payment_db**: Dedicated to Payment Service.
 
 ## 📦 Project Structure
 
