@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterOutlet } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { MainLayout } from './main-layout';
 import { Header } from '@layout/header/header';
 import { Footer } from '@layout/footer/footer';
@@ -11,7 +11,8 @@ describe('MainLayout', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MainLayout, RouterOutlet, Header, Footer, Sidebar],
+      imports: [MainLayout, Header, Footer, Sidebar],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MainLayout);

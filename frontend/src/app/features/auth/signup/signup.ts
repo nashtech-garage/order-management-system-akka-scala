@@ -33,7 +33,7 @@ export class Signup {
     },
   );
 
-  passwordMatchValidator(form: any) {
+  passwordMatchValidator(form: { get: (key: string) => { value: string } | null }) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
 
@@ -49,22 +49,39 @@ export class Signup {
       this.signupForm.disable();
       this.errorMessage.set('');
 
-      const { confirmPassword, ...userData } = this.signupForm.value;
+      const formValue = this.signupForm.value;
+      const userData = {
+        firstName: formValue.firstName,
+        lastName: formValue.lastName,
+        email: formValue.email,
+        username: formValue.username,
+        password: formValue.password,
+      };
 
-      this.authService.register(userData as any).subscribe({
-        next: () => {
-          this.isLoading.set(false);
-          this.signupForm.enable();
-          this.router.navigate(['/dashboard']);
-        },
-        error: (error) => {
-          this.isLoading.set(false);
-          this.signupForm.enable();
-          const message = error.error?.message || 'Registration failed. Please try again.';
-          this.errorMessage.set(message);
-          console.error('Signup failed', error);
-        },
-      });
+      this.authService
+        .register(
+          userData as {
+            firstName: string;
+            lastName: string;
+            email: string;
+            username: string;
+            password: string;
+          },
+        )
+        .subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.signupForm.enable();
+            this.router.navigate(['/dashboard']);
+          },
+          error: (error) => {
+            this.isLoading.set(false);
+            this.signupForm.enable();
+            const message = error.error?.message || 'Registration failed. Please try again.';
+            this.errorMessage.set(message);
+            console.error('Signup failed', error);
+          },
+        });
     }
   }
 }

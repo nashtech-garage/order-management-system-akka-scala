@@ -14,15 +14,15 @@ export class ApiService {
     return this.http.get<T>(`${this.apiUrl}${path}`, { params });
   }
 
-  post<T>(path: string, body: any): Observable<T> {
+  post<T>(path: string, body: object = {}): Observable<T> {
     return this.http.post<T>(`${this.apiUrl}${path}`, body);
   }
 
-  put<T>(path: string, body: any): Observable<T> {
+  put<T>(path: string, body: object = {}): Observable<T> {
     return this.http.put<T>(`${this.apiUrl}${path}`, body);
   }
 
-  patch<T>(path: string, body: any): Observable<T> {
+  patch<T>(path: string, body: object = {}): Observable<T> {
     return this.http.patch<T>(`${this.apiUrl}${path}`, body);
   }
 
