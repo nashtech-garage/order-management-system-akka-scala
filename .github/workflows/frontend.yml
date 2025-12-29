@@ -1,0 +1,87 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main, feature/github-action-ci ]
+  pull_request:
+    branches: [ main, feature/github-action-ci ]
+
+jobs:
+  build-and-test:
+    name: Build and Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Lint check
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Format check
+        working-directory: frontend
+        run: npm run format:check
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist
+          retention-days: 7
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        working-directory: frontend
+        run: |
+          docker build -t oms/frontend:${{ github.sha }} .
+          docker tag oms/frontend:${{ github.sha }} oms/frontend:latest
+
+      - name: Save Docker image
+        run: |
+          mkdir -p docker-images
+          docker save oms/frontend:${{ github.sha }} | gzip > docker-images/frontend.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-frontend
+          path: docker-images/frontend.tar.gz
+          retention-days: 7
