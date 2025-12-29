@@ -25,6 +25,8 @@ describe('DashboardComponent', () => {
 
   it('should display welcome message', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('p')?.textContent).toContain('Welcome to the Order Management System!');
+    expect(compiled.querySelector('p')?.textContent).toContain(
+      'Welcome to the Order Management System!',
+    );
   });
 });

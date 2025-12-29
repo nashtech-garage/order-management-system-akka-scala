@@ -16,7 +16,7 @@ export class AuthService {
       tap((response) => {
         this.setToken(response.token);
         this.currentUser.set(response.user);
-      })
+      }),
     );
   }
 
@@ -25,7 +25,7 @@ export class AuthService {
       tap(() => {
         this.removeToken();
         this.currentUser.set(null);
-      })
+      }),
     );
   }
 
@@ -34,7 +34,7 @@ export class AuthService {
       tap((response) => {
         this.setToken(response.token);
         this.currentUser.set(response.user);
-      })
+      }),
     );
   }
 

@@ -2,9 +2,9 @@ name: Order Service CI
 
 on:
   push:
-    branches: [ main, feature/github-action-ci ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, feature/github-action-ci ]
+    branches: [ main ]
 
 jobs:
   build-and-test:

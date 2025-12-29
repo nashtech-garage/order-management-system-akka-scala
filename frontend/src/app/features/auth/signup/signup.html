@@ -71,7 +71,9 @@
             }
           </span>
         }
-        @if (signupForm.hasError('passwordMismatch') && signupForm.get('confirmPassword')?.touched) {
+        @if (
+          signupForm.hasError('passwordMismatch') && signupForm.get('confirmPassword')?.touched
+        ) {
           <span class="error">Passwords do not match</span>
         }
       </div>

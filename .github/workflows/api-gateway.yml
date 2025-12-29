@@ -2,9 +2,9 @@ name: API Gateway CI
 
 on:
   push:
-    branches: [ main, feature/github-action-ci ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, feature/github-action-ci ]
+    branches: [ main ]
 
 jobs:
   build-and-test:

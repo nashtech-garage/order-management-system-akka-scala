@@ -30,20 +30,22 @@ export class Login {
       this.loginForm.disable();
       this.errorMessage.set('');
 
-      this.authService.login(this.loginForm.value as any).subscribe({
-        next: () => {
-          this.isLoading.set(false);
-          this.loginForm.enable();
-          this.router.navigate(['/dashboard']);
-        },
-        error: (error) => {
-          this.isLoading.set(false);
-          this.loginForm.enable();
-          const message = error.error?.message || 'Login failed. Please check your credentials.';
-          this.errorMessage.set(message);
-          console.error('Login failed', error);
-        },
-      });
+      this.authService
+        .login(this.loginForm.value as { username: string; password: string })
+        .subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.loginForm.enable();
+            this.router.navigate(['/dashboard']);
+          },
+          error: (error) => {
+            this.isLoading.set(false);
+            this.loginForm.enable();
+            const message = error.error?.message || 'Login failed. Please check your credentials.';
+            this.errorMessage.set(message);
+            console.error('Login failed', error);
+          },
+        });
     }
   }
 }
