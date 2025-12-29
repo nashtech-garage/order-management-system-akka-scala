@@ -252,7 +252,7 @@ http {
 
 database {
   driver = "org.postgresql.Driver"
-  url = "jdbc:postgresql://localhost:5432/oms_users"
+  url = "jdbc:postgresql://localhost:5433/oms_users"
   user = "admin"
   password = "admin"
   connectionPool = "HikariCP"
@@ -270,11 +270,11 @@ akka {
 ```
 
 **Database URLs by Service:**
-- User Service: `jdbc:postgresql://localhost:5432/oms_users`
-- Customer Service: `jdbc:postgresql://localhost:5432/oms_customers`
-- Product Service: `jdbc:postgresql://localhost:5432/oms_products`
-- Order Service: `jdbc:postgresql://localhost:5432/oms_orders`
-- Payment Service: `jdbc:postgresql://localhost:5432/oms_payments`
+- User Service: `jdbc:postgresql://localhost:5433/oms_users`
+- Customer Service: `jdbc:postgresql://localhost:5433/oms_customers`
+- Product Service: `jdbc:postgresql://localhost:5433/oms_products`
+- Order Service: `jdbc:postgresql://localhost:5433/oms_orders`
+- Payment Service: `jdbc:postgresql://localhost:5433/oms_payments`
 
 ### Frontend Configuration
 
