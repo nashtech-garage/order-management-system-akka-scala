@@ -56,28 +56,33 @@ order-management-system-akka-scala/
 │   ├── package.json            # Frontend dependencies
 │   └── tsconfig.json           # TypeScript configuration
 │
-├── api-gateway/                 # API Gateway Service (Port 8080)
-│   ├── src/main/
-│   │   ├── scala/              # Gateway routing logic
-│   │   └── resources/
-│   │       └── application.conf # Gateway configuration
-│   └── build.sbt
-│
-├── common/                      # Shared Scala library
-│   ├── src/main/scala/         # Common models, utilities
-│   └── build.sbt               # Shared dependencies
-│
-├── user-service/               # User Management (Port 8081)
-├── customer-service/           # Customer Management (Port 8082)
-├── product-service/            # Product Catalog (Port 8083)
-├── order-service/              # Order Processing (Port 8084)
-├── payment-service/            # Payment Processing (Port 8085)
-├── report-service/             # Analytics & Reporting (Port 8086)
+├── backend/                     # Backend Services
+│   ├── api-gateway/            # API Gateway Service (Port 8080)
+│   │   ├── src/main/
+│   │   │   ├── scala/          # Gateway routing logic
+│   │   │   └── resources/
+│   │   │       └── application.conf # Gateway configuration
+│   │   └── build.sbt
+│   │
+│   ├── common/                 # Shared Scala library
+│   │   ├── src/main/scala/    # Common models, utilities
+│   │   └── build.sbt          # Shared dependencies
+│   │
+│   ├── user-service/          # User Management (Port 8081)
+│   ├── customer-service/      # Customer Management (Port 8082)
+│   ├── product-service/       # Product Catalog (Port 8083)
+│   ├── order-service/         # Order Processing (Port 8084)
+│   ├── payment-service/       # Payment Processing (Port 8085)
+│   ├── report-service/        # Analytics & Reporting (Port 8086)
+│   │
+│   ├── project/               # SBT build configuration
+│   ├── target/                # Build artifacts
+│   └── build.sbt              # Root build configuration
 │
 ├── scripts/
-│   └── init-databases.sql      # Database initialization
-├── docker-compose.yml          # PostgreSQL container
-├── build.sbt                   # Root build configuration
+│   └── init-databases.sql     # Database initialization
+├── docker-compose.yml         # PostgreSQL container
+├── run-all-services.bat       # Windows batch script to start all services
 └── README.md
 ```
 
@@ -148,25 +153,25 @@ Then start each service in separate terminals:
 
 ```bash
 # Terminal 1 - API Gateway
-sbt "api-gateway/run"
+sbt "backend/api-gateway/run"
 
 # Terminal 2 - User Service
-sbt "user-service/run"
+sbt "backend/user-service/run"
 
 # Terminal 3 - Customer Service
-sbt "customer-service/run"
+sbt "backend/customer-service/run"
 
 # Terminal 4 - Product Service
-sbt "product-service/run"
+sbt "backend/product-service/run"
 
 # Terminal 5 - Order Service
-sbt "order-service/run"
+sbt "backend/order-service/run"
 
 # Terminal 6 - Payment Service
-sbt "payment-service/run"
+sbt "backend/payment-service/run"
 
 # Terminal 7 - Report Service
-sbt "report-service/run"
+sbt "backend/report-service/run"
 ```
 
 Wait for all services to start. You should see log messages indicating each service is listening on its port.
@@ -211,9 +216,9 @@ Open your browser to `http://localhost:4200`
 
 ### Backend Configuration
 
-Each backend service has its own `application.conf` file located at `{service}/src/main/resources/application.conf`.
+Each backend service has its own `application.conf` file located at `backend/{service}/src/main/resources/application.conf`.
 
-#### API Gateway Configuration (`api-gateway/src/main/resources/application.conf`)
+#### API Gateway Configuration (`backend/api-gateway/src/main/resources/application.conf`)
 
 ```hocon
 http {
@@ -242,7 +247,7 @@ akka {
 }
 ```
 
-#### Microservice Configuration (example: `user-service/src/main/resources/application.conf`)
+#### Microservice Configuration (example: `backend/user-service/src/main/resources/application.conf`)
 
 ```hocon
 http {
@@ -321,7 +326,7 @@ services:
 
 **Run specific service:**
 ```bash
-sbt "user-service/run"
+sbt "backend/user-service/run"
 ```
 
 **Run tests:**
@@ -330,12 +335,12 @@ sbt "user-service/run"
 sbt test
 
 # Test specific service
-sbt "user-service/test"
+sbt "backend/user-service/test"
 ```
 
 **Build specific service:**
 ```bash
-sbt "user-service/compile"
+sbt "backend/user-service/compile"
 ```
 
 **Clean build artifacts:**
@@ -346,7 +351,7 @@ sbt clean
 **Interactive SBT shell:**
 ```bash
 sbt
-> project user-service
+> project backend-user-service
 > compile
 > run
 ```
@@ -510,7 +515,7 @@ export HTTP_HOST=0.0.0.0
 export HTTP_PORT=8081
 
 # Run the service
-sbt "user-service/run"
+sbt "backend/user-service/run"
 ```
 
 ### Frontend Build
@@ -535,7 +540,7 @@ npm run serve:ssr:frontend
 ```dockerfile
 FROM eclipse-temurin:11-jre-alpine
 WORKDIR /app
-COPY user-service/target/scala-2.13/*.jar app.jar
+COPY backend/user-service/target/scala-2.13/*.jar app.jar
 EXPOSE 8081
 CMD ["java", "-jar", "app.jar"]
 ```
@@ -584,7 +589,7 @@ curl -X POST http://localhost:8080/orders \
 sbt test
 
 # Run tests for specific service
-sbt "user-service/test"
+sbt "backend/user-service/test"
 
 # Run with coverage
 sbt coverage test coverageReport
