@@ -7,9 +7,11 @@ import com.oms.common.DatabaseConfig
 import com.oms.product.actor.ProductActor
 import com.oms.product.repository.ProductRepository
 import com.oms.product.routes.ProductRoutes
+import com.oms.product.seeder.ProductSeeder
+import com.oms.product.migration.FlywayMigration
 import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
@@ -28,11 +30,38 @@ object ProductMain {
       
       val log = context.log
       
+      // Run Flyway migrations before initializing database
+      try {
+        val dbUrl = config.getString("database.url")
+        val dbUser = config.getString("database.user")
+        val dbPassword = config.getString("database.password")
+        
+        FlywayMigration.migrate(dbUrl, dbUser, dbPassword)
+        log.info("Flyway migrations completed successfully")
+      } catch {
+        case ex: Exception =>
+          log.error("Flyway migration failed", ex)
+          throw ex
+      }
+      
       val db = DatabaseConfig.createDatabase(config)
       val productRepository = new ProductRepository(db)
+      val productSeeder = new ProductSeeder(productRepository)
       
+      // Initialize database schema
       productRepository.createSchema().onComplete {
-        case Success(_) => log.info("Database schema created successfully")
+        case Success(_) => 
+          log.info("Database schema created successfully")
+          // Seed data if no products exist
+          productSeeder.seedAll().onComplete {
+            case Success((categories, products)) =>
+              if (categories.nonEmpty) {
+                log.info(s"Seeded ${categories.length} categories and ${products.length} products")
+              } else {
+                log.info("Products already exist, skipping seed data")
+              }
+            case Failure(ex) => log.error("Failed to seed data", ex)
+          }
         case Failure(ex) => log.error("Failed to create database schema", ex)
       }
       

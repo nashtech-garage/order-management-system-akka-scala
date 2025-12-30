@@ -49,7 +49,8 @@ object ProductActor {
             description = request.description,
             price = request.price,
             stockQuantity = request.stockQuantity,
-            categoryId = request.categoryId
+            categoryId = request.categoryId,
+            imageUrl = request.imageUrl
           )
           context.pipeToSelf(repository.createProduct(product)) {
             case Success(created) =>
@@ -117,7 +118,7 @@ object ProductActor {
           Behaviors.same
           
         case UpdateProduct(id, request, replyTo) =>
-          context.pipeToSelf(repository.updateProduct(id, request.name, request.description, request.price, request.stockQuantity, request.categoryId)) {
+          context.pipeToSelf(repository.updateProduct(id, request.name, request.description, request.price, request.stockQuantity, request.categoryId, request.imageUrl)) {
             case Success(count) if count > 0 =>
               replyTo ! ProductUpdated(s"Product $id updated successfully")
               null
