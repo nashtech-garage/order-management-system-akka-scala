@@ -7,6 +7,7 @@ import com.oms.common.DatabaseConfig
 import com.oms.customer.actor.CustomerActor
 import com.oms.customer.repository.CustomerRepository
 import com.oms.customer.routes.CustomerRoutes
+import com.oms.customer.migration.FlywayMigration
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -27,6 +28,20 @@ object CustomerMain {
       implicit val system: ActorSystem[Nothing] = context.system
       
       val log = context.log
+      
+      // Run Flyway migrations before initializing database
+      try {
+        val dbUrl = config.getString("database.url")
+        val dbUser = config.getString("database.user")
+        val dbPassword = config.getString("database.password")
+        
+        FlywayMigration.migrate(dbUrl, dbUser, dbPassword)
+        log.info("Flyway migrations completed successfully")
+      } catch {
+        case ex: Exception =>
+          log.error("Flyway migration failed", ex)
+          throw ex
+      }
       
       val db = DatabaseConfig.createDatabase(config)
       val customerRepository = new CustomerRepository(db)
