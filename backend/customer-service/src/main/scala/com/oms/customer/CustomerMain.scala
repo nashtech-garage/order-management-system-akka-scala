@@ -7,6 +7,7 @@ import com.oms.common.DatabaseConfig
 import com.oms.customer.actor.CustomerActor
 import com.oms.customer.repository.CustomerRepository
 import com.oms.customer.routes.CustomerRoutes
+import com.oms.customer.seed.CustomerSeeder
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -30,10 +31,14 @@ object CustomerMain {
       
       val db = DatabaseConfig.createDatabase(config)
       val customerRepository = new CustomerRepository(db)
+      val customerSeeder = new CustomerSeeder(customerRepository)
       
-      customerRepository.createSchema().onComplete {
-        case Success(_) => log.info("Database schema created successfully")
-        case Failure(ex) => log.error("Failed to create database schema", ex)
+      customerRepository.createSchema().flatMap { _ =>
+        log.info("Database schema created successfully")
+        customerSeeder.seedData()
+      }.onComplete {
+        case Success(_) => log.info("Database seeding completed successfully")
+        case Failure(ex) => log.error("Failed to initialize database", ex)
       }
       
       val customerActor = context.spawn(CustomerActor(customerRepository), "customer-actor")
