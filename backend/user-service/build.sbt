@@ -4,6 +4,7 @@ val SlickVersion = "3.4.1"
 val PostgresVersion = "42.6.0"
 val LogbackVersion = "1.4.11"
 val ScalaTestVersion = "3.2.17"
+val BCryptVersion = "0.4"
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.13.17",
@@ -32,6 +33,7 @@ lazy val `user-service` = (project in file("."))
       "com.typesafe.slick" %% "slick" % SlickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
       "org.postgresql" % "postgresql" % PostgresVersion,
+      "org.mindrot" % "jbcrypt" % BCryptVersion,
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,

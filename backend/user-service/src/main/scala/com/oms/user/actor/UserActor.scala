@@ -4,7 +4,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.oms.user.model._
 import com.oms.user.repository.UserRepository
-import java.security.MessageDigest
+import org.mindrot.jbcrypt.BCrypt
 import java.util.Base64
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -120,13 +120,11 @@ object UserActor {
   }
   
   private def hashPassword(password: String): String = {
-    val md = MessageDigest.getInstance("SHA-256")
-    val bytes = md.digest(password.getBytes("UTF-8"))
-    Base64.getEncoder.encodeToString(bytes)
+    BCrypt.hashpw(password, BCrypt.gensalt())
   }
   
   private def verifyPassword(password: String, hash: String): Boolean = {
-    hashPassword(password) == hash
+    BCrypt.checkpw(password, hash)
   }
   
   private def generateToken(user: User): String = {

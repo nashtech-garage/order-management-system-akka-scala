@@ -7,6 +7,7 @@ import com.oms.common.DatabaseConfig
 import com.oms.user.actor.UserActor
 import com.oms.user.repository.UserRepository
 import com.oms.user.routes.UserRoutes
+import com.oms.user.seeder.DataSeeder
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -30,11 +31,16 @@ object UserMain {
       
       val db = DatabaseConfig.createDatabase(config)
       val userRepository = new UserRepository(db)
+      val dataSeeder = new DataSeeder(userRepository)
       
       // Create schema on startup
-      userRepository.createSchema().onComplete {
-        case Success(_) => log.info("Database schema created successfully")
-        case Failure(ex) => log.error("Failed to create database schema", ex)
+      userRepository.createSchema().flatMap { _ =>
+        log.info("Database schema created successfully")
+        // Seed data after schema creation
+        dataSeeder.seedData()
+      }.onComplete {
+        case Success(_) => log.info("Database initialization completed")
+        case Failure(ex) => log.error("Failed to initialize database", ex)
       }
       
       val userActor = context.spawn(UserActor(userRepository), "user-actor")
