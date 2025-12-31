@@ -5,14 +5,13 @@ import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, Directive1, Route}
 import akka.http.scaladsl.model.StatusCodes
-import java.util.Base64
-import scala.util.Try
+import com.oms.common.security.{JwtService, JwtUser}
 
-case class AuthenticatedUser(userId: Long, username: String)
+case class AuthenticatedUser(userId: Long, username: String, email: String, role: String)
 
 trait AuthMiddleware {
   
-  // Extract and validate bearer token
+  // Extract and validate JWT bearer token
   def authenticate: Directive1[AuthenticatedUser] = {
     optionalHeaderValueByType(classOf[Authorization]).flatMap {
       case Some(Authorization(OAuth2BearerToken(token))) =>
@@ -35,17 +34,22 @@ trait AuthMiddleware {
     }
   }
   
-  // Simple token validation (in production, use JWT with proper validation)
+  // Validate JWT token using JwtService
   private def validateToken(token: String): Option[AuthenticatedUser] = {
-    Try {
-      val decoded = new String(Base64.getDecoder.decode(token), "UTF-8")
-      val parts = decoded.split(":")
-      if (parts.length >= 2) {
-        Some(AuthenticatedUser(parts(0).toLong, parts(1)))
+    JwtService.validateToken(token).map { jwtUser =>
+      AuthenticatedUser(jwtUser.userId, jwtUser.username, jwtUser.email, jwtUser.role)
+    }
+  }
+  
+  // Role-based authorization
+  def authorize(allowedRoles: String*): Directive1[AuthenticatedUser] = {
+    authenticate.flatMap { user =>
+      if (allowedRoles.contains(user.role)) {
+        provide(user)
       } else {
-        None
+        complete(StatusCodes.Forbidden, HttpEntity(ContentTypes.`application/json`, """{"error":"Insufficient permissions"}"""))
       }
-    }.toOption.flatten
+    }
   }
   
   // Log request details
@@ -67,6 +71,3 @@ trait AuthMiddleware {
     )
   }
 }
-
-object AuthMiddleware extends AuthMiddleware
-

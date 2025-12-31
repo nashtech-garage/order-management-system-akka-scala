@@ -9,22 +9,12 @@
     }
 
     <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="firstName">First Name <span class="required">*</span></label>
-          <input id="firstName" type="text" formControlName="firstName" />
-          @if (signupForm.get('firstName')?.invalid && signupForm.get('firstName')?.touched) {
-            <span class="error">First name is required</span>
-          }
-        </div>
-
-        <div class="form-group">
-          <label for="lastName">Last Name</label>
-          <input id="lastName" type="text" formControlName="lastName" />
-          @if (signupForm.get('lastName')?.invalid && signupForm.get('lastName')?.touched) {
-            <span class="error">Last name is required</span>
-          }
-        </div>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input id="username" type="text" formControlName="username" />
+        @if (signupForm.get('username')?.invalid && signupForm.get('username')?.touched) {
+          <span class="error">Username is required (min 3 characters)</span>
+        }
       </div>
 
       <div class="form-group">
@@ -38,14 +28,6 @@
               Please enter a valid email
             }
           </span>
-        }
-      </div>
-
-      <div class="form-group">
-        <label for="username">Username</label>
-        <input id="username" type="text" formControlName="username" />
-        @if (signupForm.get('username')?.invalid && signupForm.get('username')?.touched) {
-          <span class="error">Username is required (min 3 characters)</span>
         }
       </div>
 

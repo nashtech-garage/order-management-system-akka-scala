@@ -5,7 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Directive0, Route}
 import com.oms.gateway.middleware.AuthMiddleware
 import spray.json._
 
@@ -17,18 +17,36 @@ class GatewayRoutes(
   
   private val http = Http()
   
-  val routes: Route = logRequest {
-    addSecurityHeaders {
-      handleExceptions(exceptionHandler) {
-        healthRoute ~
-        servicesHealthRoute ~
-        pathPrefix("api") {
-          usersRoutes ~
-          customersRoutes ~
-          productsRoutes ~
-          ordersRoutes ~
-          paymentsRoutes ~
-          reportsRoutes
+  // CORS headers configuration
+  private def corsHeaders: List[HttpHeader] = List(
+    `Access-Control-Allow-Origin`.*,
+    `Access-Control-Allow-Methods`(HttpMethods.GET, HttpMethods.POST, HttpMethods.PUT, HttpMethods.DELETE, HttpMethods.OPTIONS),
+    `Access-Control-Allow-Headers`("Content-Type", "Authorization", "X-Requested-With"),
+    `Access-Control-Allow-Credentials`(true)
+  )
+  
+  private def handleCors: Directive0 = {
+    respondWithHeaders(corsHeaders)
+  }
+  
+  val routes: Route = handleCors {
+    options {
+      complete(StatusCodes.OK)
+    } ~
+    logRequest {
+      addSecurityHeaders {
+        handleExceptions(exceptionHandler) {
+          healthRoute ~
+          servicesHealthRoute ~
+          pathPrefix("api") {
+            authRoutes ~
+            usersRoutes ~
+            customersRoutes ~
+            productsRoutes ~
+            ordersRoutes ~
+            paymentsRoutes ~
+            reportsRoutes
+          }
         }
       }
     }
@@ -58,6 +76,19 @@ class GatewayRoutes(
           })
         )
         complete(status, HttpEntity(ContentTypes.`application/json`, response.compactPrint))
+      }
+    }
+  }
+  
+  private def authRoutes: Route = pathPrefix("auth") {
+    path("login") {
+      post {
+        proxyToService("user-service", "/users/login")
+      }
+    } ~
+    path("register") {
+      post {
+        proxyToService("user-service", "/users/register")
       }
     }
   }

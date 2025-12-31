@@ -6,6 +6,7 @@ val SlickVersion = "3.4.1"
 val PostgresVersion = "42.6.0"
 val LogbackVersion = "1.4.11"
 val ScalaTestVersion = "3.2.17"
+val JwtVersion = "10.0.1"
 
 scalaVersion := "2.13.17"
 
@@ -19,6 +20,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
   "org.postgresql" % "postgresql" % PostgresVersion,
   "ch.qos.logback" % "logback-classic" % LogbackVersion,
+  "com.github.jwt-scala" %% "jwt-core" % JwtVersion,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
   "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
   "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
