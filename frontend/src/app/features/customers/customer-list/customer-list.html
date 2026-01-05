@@ -1,0 +1,99 @@
+<div class="customer-list-container">
+    <header class="page-header">
+        <div class="title-section">
+            <h1>Customer Management</h1>
+            <p class="subtitle">Manage your customer base and their addresses</p>
+        </div>
+        <app-button variant="primary" (click)="navigateToCreate()">
+            <span>+ Add Customer</span>
+        </app-button>
+    </header>
+
+    <div class="content-card">
+        <!-- Search and Filter -->
+        <div class="actions-bar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Search customers..." [formControl]="searchControl" />
+            </div>
+        </div>
+
+        @if (error()) {
+        <div class="error-banner">
+            <span>⚠️ {{ error() }}</span>
+        </div>
+        }
+
+        <!-- Loading State -->
+        @if (isLoading()) {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading customers...</p>
+        </div>
+        }
+
+        <!-- Table -->
+        @if (!isLoading() && customers().length > 0) {
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Created At</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (customer of customers(); track customer.id) {
+                    <tr>
+                        <td>#{{ customer.id }}</td>
+                        <td class="font-medium">
+                            {{ customer.firstName }} {{ customer.lastName }}
+                        </td>
+                        <td>{{ customer.email }}</td>
+                        <td>{{ customer.phone || '-' }}</td>
+                        <td>{{ customer.createdAt | date:'mediumDate' }}</td>
+                        <td class="actions-cell">
+                            <button class="icon-btn edit" (click)="navigateToEdit(customer.id)" title="Edit">
+                                ✏️
+                            </button>
+                            <button class="icon-btn delete" (click)="deleteCustomer(customer.id)" title="Delete">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button class="page-btn" [disabled]="offset() === 0" (click)="changePage(-1)">
+                Previous
+            </button>
+            <span class="page-info">
+                Page {{ currentPage() }}
+            </span>
+            <button class="page-btn" [disabled]="customers().length < limit()" (click)="changePage(1)">
+                Next
+            </button>
+        </div>
+        }
+
+        <!-- Empty State -->
+        @if (!isLoading() && customers().length === 0 && !error()) {
+        <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <h3>No customers found</h3>
+            <p>Get started by adding your first customer</p>
+            <app-button variant="primary" (click)="navigateToCreate()">
+                Add Customer
+            </app-button>
+        </div>
+        }
+    </div>
+</div>
