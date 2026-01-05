@@ -1,17 +1,14 @@
 export interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  createdAt: Date;
-  updatedAt: Date;
+  role: string;
+  createdAt: string;
 }
 
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  CUSTOMER = 'CUSTOMER',
+  ADMIN = 'admin',
+  USER = 'user',
 }
 
 export interface LoginRequest {
@@ -28,6 +25,4 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
 }

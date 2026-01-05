@@ -4,8 +4,9 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.oms.user.model._
 import com.oms.user.repository.UserRepository
+import com.oms.common.security.{JwtService, JwtUser}
 import org.mindrot.jbcrypt.BCrypt
-import java.util.Base64
+
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -128,7 +129,12 @@ object UserActor {
   }
   
   private def generateToken(user: User): String = {
-    val payload = s"${user.id.getOrElse(0)}:${user.username}:${System.currentTimeMillis()}"
-    Base64.getEncoder.encodeToString(payload.getBytes("UTF-8"))
+    val jwtUser = JwtUser(
+      userId = user.id.getOrElse(0L),
+      username = user.username,
+      email = user.email,
+      role = user.role
+    )
+    JwtService.generateToken(jwtUser)
   }
 }
