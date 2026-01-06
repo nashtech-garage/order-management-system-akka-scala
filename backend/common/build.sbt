@@ -7,6 +7,8 @@ val PostgresVersion = "42.6.0"
 val LogbackVersion = "1.4.11"
 val ScalaTestVersion = "3.2.17"
 val JwtVersion = "10.0.1"
+val H2Version = "2.2.224"
+val MockitoScalaVersion = "1.17.30"
 
 scalaVersion := "2.13.17"
 
@@ -23,7 +25,10 @@ libraryDependencies ++= Seq(
   "com.github.jwt-scala" %% "jwt-core" % JwtVersion,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
   "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
-  "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
+  "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+  "com.h2database" % "h2" % H2Version % Test,
+  "org.mockito" %% "mockito-scala" % MockitoScalaVersion % Test,
+  "org.mockito" %% "mockito-scala-scalatest" % MockitoScalaVersion % Test
 )
 
-resolvers += "Akka library repository".at(s"https://repo.akka.io/fOnF6aq4lmGHCfvMkKEDUvyyaRnfhkJFBqIcPN4r9iux7LK-/secure")
+resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure")

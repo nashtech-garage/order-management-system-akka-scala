@@ -16,7 +16,7 @@ lazy val commonSettings = Seq(
     "-unchecked",
     "-Xlint"
   ),
-  resolvers += "Akka library repository".at(s"https://repo.akka.io/fOnF6aq4lmGHCfvMkKEDUvyyaRnfhkJFBqIcPN4r9iux7LK-/secure")
+  resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure")
 )
 
 lazy val commonRef = RootProject(file("../common"))

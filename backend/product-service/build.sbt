@@ -5,6 +5,8 @@ val PostgresVersion = "42.6.0"
 val FlywayVersion = "9.22.3"
 val LogbackVersion = "1.4.11"
 val ScalaTestVersion = "3.2.17"
+val H2Version = "2.2.224"
+val MockitoScalaVersion = "1.17.30"
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.13.17",
@@ -14,7 +16,7 @@ lazy val commonSettings = Seq(
     "-unchecked",
     "-Xlint"
   ),
-  resolvers += "Akka library repository".at(s"https://repo.akka.io/fOnF6aq4lmGHCfvMkKEDUvyyaRnfhkJFBqIcPN4r9iux7LK-/secure")
+  resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure")
 )
 
 lazy val commonRef = RootProject(file("../common"))
@@ -37,7 +39,10 @@ lazy val `product-service` = (project in file("."))
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
+      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+      "com.h2database" % "h2" % H2Version % Test,
+      "org.mockito" %% "mockito-scala" % MockitoScalaVersion % Test,
+      "org.mockito" %% "mockito-scala-scalatest" % MockitoScalaVersion % Test
     )
   )
   .dependsOn(commonRef)
