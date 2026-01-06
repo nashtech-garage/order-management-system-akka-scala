@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@features/auth/auth.service';
 import { Button } from '@app/shared/components/button/button';
 
@@ -15,6 +15,7 @@ export class Login {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   isLoading = signal(false);
   errorMessage = signal<string>('');
@@ -36,7 +37,10 @@ export class Login {
           next: () => {
             this.isLoading.set(false);
             this.loginForm.enable();
-            this.router.navigate(['/dashboard']);
+
+            // Get the returnUrl from query params or default to dashboard
+            const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+            this.router.navigateByUrl(returnUrl);
           },
           error: (error) => {
             this.isLoading.set(false);

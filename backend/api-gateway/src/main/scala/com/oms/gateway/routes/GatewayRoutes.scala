@@ -86,6 +86,16 @@ class GatewayRoutes(
         proxyToService("user-service", "/users/login")
       }
     } ~
+    path("logout") {
+      post {
+        proxyToService("user-service", "/users/logout")
+      }
+    } ~
+    path("verify") {
+      get {
+        proxyToService("user-service", "/users/verify")
+      }
+    } ~
     path("register") {
       post {
         proxyToService("user-service", "/users/register")

@@ -36,8 +36,14 @@ object JwtService {
   
   /**
    * Validate and decode a JWT token
+   * Also checks if the token is blacklisted
    */
   def validateToken(token: String): Option[JwtUser] = {
+    // First check if token is blacklisted
+    if (TokenBlacklistService.isBlacklisted(token)) {
+      return None
+    }
+    
     Jwt.decode(token, secretKey, Seq(algorithm)) match {
       case Success(claim) =>
         Try {
@@ -45,6 +51,22 @@ object JwtService {
         }.toOption
       case Failure(_) =>
         None
+    }
+  }
+  
+  /**
+   * Invalidate a token by adding it to the blacklist
+   * @param token The JWT token to invalidate
+   */
+  def invalidateToken(token: String): Unit = {
+    Jwt.decode(token, secretKey, Seq(algorithm)) match {
+      case Success(claim) =>
+        val expirationTime = claim.expiration.getOrElse(clock.instant().getEpochSecond)
+        TokenBlacklistService.blacklistToken(token, expirationTime)
+      case Failure(_) =>
+        // If we can't decode the token, just blacklist it with a default expiration
+        val defaultExpiration = clock.instant().getEpochSecond + expirationSeconds
+        TokenBlacklistService.blacklistToken(token, defaultExpiration)
     }
   }
   

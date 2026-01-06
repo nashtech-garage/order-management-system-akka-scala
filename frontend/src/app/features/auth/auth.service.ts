@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, of, map, catchError } from 'rxjs';
 import { ApiService } from '@core/services/api-service';
 import { API_ENDPOINTS } from '@core/constants/api-endpoints';
 import { LoginRequest, LoginResponse, RegisterRequest, User } from '@shared/models/user.model';
@@ -21,6 +21,14 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
+    const token = this.getToken();
+    if (!token) {
+      // No token to invalidate, just clear local state
+      this.removeToken();
+      this.currentUser.set(null);
+      return of(undefined);
+    }
+
     return this.apiService.post<void>(API_ENDPOINTS.AUTH.LOGOUT, {}).pipe(
       tap(() => {
         this.removeToken();
@@ -48,6 +56,31 @@ export class AuthService {
 
   removeToken(): void {
     localStorage.removeItem('auth_token');
+  }
+
+  validateToken(): Observable<boolean> {
+    const token = this.getToken();
+    if (!token) {
+      return of(false);
+    }
+
+    // Call backend to verify token is valid
+    return this.apiService.get<{ valid: boolean }>(API_ENDPOINTS.AUTH.VERIFY).pipe(
+      map((response) => {
+        if (!response.valid) {
+          this.removeToken();
+          this.currentUser.set(null);
+          return false;
+        }
+        return true;
+      }),
+      catchError(() => {
+        // If error occurs (e.g., 401), token is invalid
+        this.removeToken();
+        this.currentUser.set(null);
+        return of(false);
+      }),
+    );
   }
 
   isAuthenticated(): boolean {
