@@ -67,6 +67,35 @@ class UserRoutes(userActor: ActorRef[UserActor.Command])(implicit system: ActorS
           }
         }
       } ~
+      path("logout") {
+        post {
+          headerValueByName("Authorization") { authHeader =>
+            val token = authHeader.replace("Bearer ", "")
+            val response = userActor.ask(ref => Logout(token, ref))
+            onSuccess(response) {
+              case LogoutSuccess(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+              case UserError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
+          }
+        }
+      } ~
+      path("verify") {
+        get {
+          optionalHeaderValueByName("Authorization") {
+            case Some(authHeader) =>
+              val token = authHeader.replace("Bearer ", "")
+              // Validate token using JwtService
+              import com.oms.common.security.JwtService
+              JwtService.validateToken(token) match {
+                case Some(_) => complete(StatusCodes.OK, Map("valid" -> "true"))
+                case None => complete(StatusCodes.Unauthorized, Map("valid" -> "false", "error" -> "Invalid or expired token"))
+              }
+            case None =>
+              complete(StatusCodes.Unauthorized, Map("valid" -> "false", "error" -> "Missing authorization header"))
+          }
+        }
+      } ~
       path(LongNumber) { id =>
         get {
           val response = userActor.ask(ref => GetUser(id, ref))

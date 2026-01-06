@@ -15,6 +15,7 @@ object UserActor {
   sealed trait Command
   case class CreateUser(request: CreateUserRequest, replyTo: ActorRef[Response]) extends Command
   case class Login(request: LoginRequest, replyTo: ActorRef[Response]) extends Command
+  case class Logout(token: String, replyTo: ActorRef[Response]) extends Command
   case class GetUser(id: Long, replyTo: ActorRef[Response]) extends Command
   case class GetAllUsers(offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
   case class UpdateUser(id: Long, request: UpdateUserRequest, replyTo: ActorRef[Response]) extends Command
@@ -27,6 +28,7 @@ object UserActor {
   case class UserUpdated(message: String) extends Response
   case class UserDeleted(message: String) extends Response
   case class LoginSuccess(user: UserResponse, token: String) extends Response
+  case class LogoutSuccess(message: String) extends Response
   case class UserError(message: String) extends Response
   
   def apply(repository: UserRepository)(implicit ec: ExecutionContext): Behavior[Command] = {
@@ -62,6 +64,12 @@ object UserActor {
               replyTo ! UserError(s"Login failed: ${ex.getMessage}")
               null
           }
+          Behaviors.same
+          
+        case Logout(token, replyTo) =>
+          // Invalidate the token by adding it to the blacklist
+          JwtService.invalidateToken(token)
+          replyTo ! LogoutSuccess("Logout successful")
           Behaviors.same
           
         case GetUser(id, replyTo) =>
