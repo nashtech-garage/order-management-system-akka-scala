@@ -44,6 +44,28 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'customers',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/customers/customer-list/customer-list').then((m) => m.CustomerList),
+      },
+      {
+        path: 'new',
+        loadComponent: () =>
+          import('@features/customers/customer-form/customer-form').then((m) => m.CustomerForm),
+      },
+      {
+        path: ':id/edit',
+        loadComponent: () =>
+          import('@features/customers/customer-form/customer-form').then((m) => m.CustomerForm),
+      },
+    ],
+  },
+  {
     path: '**',
     loadComponent: () => import('@features/not-found/not-found').then((m) => m.NotFound),
   },

@@ -1,0 +1,173 @@
+<div class="customer-form-container">
+  <header class="page-header">
+    <div class="title-section">
+      <h1>{{ isEditMode() ? 'Edit Customer' : 'Add New Customer' }}</h1>
+      <p class="subtitle">
+        {{
+          isEditMode()
+            ? 'Update customer details and addresses'
+            : 'Create a new customer
+                profile'
+        }}
+      </p>
+    </div>
+    <app-button variant="secondary" (click)="cancel()">
+      <span>Cancel</span>
+    </app-button>
+  </header>
+
+  <div class="content-card">
+    @if (error()) {
+      <div class="error-banner">
+        <span>⚠️ {{ error() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="customerForm" (ngSubmit)="onSubmit()">
+      <div class="form-section">
+        <h3>Personal Information</h3>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input
+              id="firstName"
+              type="text"
+              formControlName="firstName"
+              [class.error]="isFieldInvalid('firstName')"
+            />
+            @if (isFieldInvalid('firstName')) {
+              <span class="error-msg">First name is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input
+              id="lastName"
+              type="text"
+              formControlName="lastName"
+              [class.error]="isFieldInvalid('lastName')"
+            />
+            @if (isFieldInvalid('lastName')) {
+              <span class="error-msg">Last name is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              [class.error]="isFieldInvalid('email')"
+            />
+            @if (isFieldInvalid('email')) {
+              <span class="error-msg">Valid email is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input id="phone" type="tel" formControlName="phone" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-header">
+          <h3>Addresses</h3>
+          <button type="button" class="add-btn" (click)="addAddress()">+ Add Address</button>
+        </div>
+
+        <div formArrayName="addresses">
+          @for (addr of addresses.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="address-card">
+              <div class="address-header">
+                <h4>Address #{{ i + 1 }}</h4>
+                <button type="button" class="remove-btn" (click)="removeAddress(i)">Remove</button>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label [for]="'street-' + i">Street Address</label>
+                  <input
+                    [id]="'street-' + i"
+                    type="text"
+                    formControlName="street"
+                    [class.error]="isAddressFieldInvalid(i, 'street')"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label [for]="'city-' + i">City</label>
+                  <input
+                    [id]="'city-' + i"
+                    type="text"
+                    formControlName="city"
+                    [class.error]="isAddressFieldInvalid(i, 'city')"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label [for]="'state-' + i">State</label>
+                  <input
+                    [id]="'state-' + i"
+                    type="text"
+                    formControlName="state"
+                    [class.error]="isAddressFieldInvalid(i, 'state')"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label [for]="'postalCode-' + i">Postal Code</label>
+                  <input
+                    [id]="'postalCode-' + i"
+                    type="text"
+                    formControlName="postalCode"
+                    [class.error]="isAddressFieldInvalid(i, 'postalCode')"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label [for]="'country-' + i">Country</label>
+                  <input
+                    [id]="'country-' + i"
+                    type="text"
+                    formControlName="country"
+                    [class.error]="isAddressFieldInvalid(i, 'country')"
+                  />
+                </div>
+              </div>
+
+              <div class="checkbox-group">
+                <input [id]="'default-' + i" type="checkbox" formControlName="isDefault" />
+                <label [for]="'default-' + i">Set as default address</label>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (addresses.length === 0) {
+          <div class="no-addresses">
+            <p>No addresses added yet.</p>
+          </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <app-button
+          type="submit"
+          variant="primary"
+          [disabled]="customerForm.invalid || isSubmitting()"
+        >
+          @if (isSubmitting()) {
+            <span>Saving...</span>
+          } @else {
+            <span>{{ isEditMode() ? 'Update Customer' : 'Create Customer' }}</span>
+          }
+        </app-button>
+      </div>
+    </form>
+  </div>
+</div>

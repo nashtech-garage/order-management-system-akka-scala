@@ -11,7 +11,7 @@ lazy val commonSettings = Seq(
     "-unchecked",
     "-Xlint"
   ),
-  resolvers += "Akka library repository".at(s"https://repo.akka.io/fOnF6aq4lmGHCfvMkKEDUvyyaRnfhkJFBqIcPN4r9iux7LK-/secure")
+  resolvers += "Akka library repository".at(s"https://repo.akka.io/HxfXlKFG1-6t5sOH780lRBFWRAtd8D_YZ_ABgpnpuMtnESr0/secure")
 )
 
 // API Gateway doesn't need database - it proxies to other services
