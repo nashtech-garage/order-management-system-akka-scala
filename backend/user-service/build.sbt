@@ -6,6 +6,8 @@ val FlywayVersion = "9.22.3"
 val LogbackVersion = "1.4.11"
 val ScalaTestVersion = "3.2.17"
 val BCryptVersion = "0.4"
+val H2Version = "2.2.224"
+val MockitoScalaVersion = "1.17.30"
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.13.17",
@@ -39,7 +41,10 @@ lazy val `user-service` = (project in file("."))
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
+      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+      "com.h2database" % "h2" % H2Version % Test,
+      "org.mockito" %% "mockito-scala" % MockitoScalaVersion % Test,
+      "org.mockito" %% "mockito-scala-scalatest" % MockitoScalaVersion % Test
     )
   )
   .dependsOn(commonRef)
