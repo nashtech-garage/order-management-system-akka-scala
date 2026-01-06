@@ -2,6 +2,7 @@ val AkkaVersion = "2.10.12"
 val AkkaHttpVersion = "10.7.3"
 val SlickVersion = "3.4.1"
 val PostgresVersion = "42.6.0"
+val FlywayVersion = "9.22.3"
 val LogbackVersion = "1.4.11"
 val ScalaTestVersion = "3.2.17"
 val BCryptVersion = "0.4"
@@ -33,6 +34,7 @@ lazy val `user-service` = (project in file("."))
       "com.typesafe.slick" %% "slick" % SlickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
       "org.postgresql" % "postgresql" % PostgresVersion,
+      "org.flywaydb" % "flyway-core" % FlywayVersion,
       "org.mindrot" % "jbcrypt" % BCryptVersion,
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,

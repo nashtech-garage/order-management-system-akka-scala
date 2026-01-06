@@ -22,9 +22,10 @@ class ProductRepository(db: Database)(implicit ec: ExecutionContext) {
     def price = column[BigDecimal]("price")
     def stockQuantity = column[Int]("stock_quantity")
     def categoryId = column[Option[Long]]("category_id")
+    def imageUrl = column[Option[String]]("image_url")
     def createdAt = column[LocalDateTime]("created_at")
     
-    def * = (id.?, name, description, price, stockQuantity, categoryId, createdAt).mapTo[Product]
+    def * = (id.?, name, description, price, stockQuantity, categoryId, imageUrl, createdAt).mapTo[Product]
     def categoryFk = foreignKey("category_fk", categoryId, categories)(_.id.?)
   }
   
@@ -79,7 +80,7 @@ class ProductRepository(db: Database)(implicit ec: ExecutionContext) {
   }
   
   def updateProduct(id: Long, name: Option[String], description: Option[String], 
-                    price: Option[BigDecimal], stockQuantity: Option[Int], categoryId: Option[Long]): Future[Int] = {
+                    price: Option[BigDecimal], stockQuantity: Option[Int], categoryId: Option[Long], imageUrl: Option[String]): Future[Int] = {
     findById(id).flatMap {
       case Some(existing) =>
         val updated = existing.copy(
@@ -87,7 +88,8 @@ class ProductRepository(db: Database)(implicit ec: ExecutionContext) {
           description = description.orElse(existing.description),
           price = price.getOrElse(existing.price),
           stockQuantity = stockQuantity.getOrElse(existing.stockQuantity),
-          categoryId = categoryId.orElse(existing.categoryId)
+          categoryId = categoryId.orElse(existing.categoryId),
+          imageUrl = imageUrl.orElse(existing.imageUrl)
         )
         db.run(products.filter(_.id === id).update(updated))
       case None => Future.successful(0)

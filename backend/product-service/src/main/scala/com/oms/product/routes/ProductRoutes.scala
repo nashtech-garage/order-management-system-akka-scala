@@ -3,9 +3,10 @@ package com.oms.product.routes
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{Multipart, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.stream.scaladsl.FileIO
 import akka.util.Timeout
 import com.oms.common.{HttpUtils, JsonSupport}
 import com.oms.product.actor.ProductActor
@@ -13,21 +14,47 @@ import com.oms.product.actor.ProductActor._
 import com.oms.product.model._
 import spray.json._
 
+import java.io.File
+import java.nio.file.{Files, Paths}
+import java.util.UUID
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 trait ProductJsonFormats extends JsonSupport {
-  implicit val createProductRequestFormat: RootJsonFormat[CreateProductRequest] = jsonFormat5(CreateProductRequest)
-  implicit val updateProductRequestFormat: RootJsonFormat[UpdateProductRequest] = jsonFormat5(UpdateProductRequest)
+  implicit val createProductRequestFormat: RootJsonFormat[CreateProductRequest] = jsonFormat6(CreateProductRequest)
+  implicit val updateProductRequestFormat: RootJsonFormat[UpdateProductRequest] = jsonFormat6(UpdateProductRequest)
   implicit val createCategoryRequestFormat: RootJsonFormat[CreateCategoryRequest] = jsonFormat2(CreateCategoryRequest)
   implicit val updateStockRequestFormat: RootJsonFormat[UpdateStockRequest] = jsonFormat1(UpdateStockRequest)
   implicit val categoryFormat: RootJsonFormat[Category] = jsonFormat3(Category)
-  implicit val productResponseFormat: RootJsonFormat[ProductResponse] = jsonFormat8(ProductResponse.apply)
+  implicit val productResponseFormat: RootJsonFormat[ProductResponse] = jsonFormat9(ProductResponse.apply)
 }
 
 class ProductRoutes(productActor: ActorRef[ProductActor.Command])(implicit system: ActorSystem[_]) 
     extends HttpUtils with ProductJsonFormats {
   
   implicit val timeout: Timeout = 10.seconds
+  implicit val ec = system.executionContext
+  
+  // Directory to store uploaded images
+  private val uploadDir = "uploads/products"
+  Files.createDirectories(Paths.get(uploadDir))
+  
+  private def handleImageUpload(fileData: Multipart.FormData): Future[String] = {
+    fileData.parts.mapAsync(1) { part =>
+      if (part.name == "image") {
+        val fileName = s"${UUID.randomUUID()}_${part.filename.getOrElse("image.jpg")}"
+        val filePath = Paths.get(uploadDir, fileName)
+        val sink = FileIO.toPath(filePath)
+        
+        part.entity.dataBytes.runWith(sink).map { _ =>
+          s"/uploads/products/$fileName"
+        }
+      } else {
+        part.entity.discardBytes()
+        Future.successful("")
+      }
+    }.runFold("")((acc, url) => if (url.nonEmpty) url else acc)
+  }
   
   val routes: Route = handleExceptions(exceptionHandler) {
     healthRoute ~
@@ -89,6 +116,21 @@ class ProductRoutes(productActor: ActorRef[ProductActor.Command])(implicit syste
             case ProductDeleted(msg) => complete(StatusCodes.OK, Map("message" -> msg))
             case ProductError(msg) => complete(StatusCodes.NotFound, Map("error" -> msg))
             case _ => complete(StatusCodes.InternalServerError)
+          }
+        }
+      } ~
+      path(LongNumber / "upload-image") { id =>
+        post {
+          entity(as[Multipart.FormData]) { formData =>
+            val uploadResult = handleImageUpload(formData).flatMap { imageUrl =>
+              val updateRequest = UpdateProductRequest(None, None, None, None, None, Some(imageUrl))
+              productActor.ask(ref => UpdateProduct(id, updateRequest, ref))
+            }
+            onSuccess(uploadResult) {
+              case ProductUpdated(_) => complete(StatusCodes.OK, Map("message" -> "Image uploaded successfully"))
+              case ProductError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
           }
         }
       } ~
@@ -157,6 +199,18 @@ class ProductRoutes(productActor: ActorRef[ProductActor.Command])(implicit syste
             case CategoryDeleted(msg) => complete(StatusCodes.OK, Map("message" -> msg))
             case ProductError(msg) => complete(StatusCodes.NotFound, Map("error" -> msg))
             case _ => complete(StatusCodes.InternalServerError)
+          }
+        }
+      }
+    } ~
+    pathPrefix("uploads" / "products") {
+      path(Remaining) { fileName =>
+        get {
+          val file = new File(uploadDir, fileName)
+          if (file.exists()) {
+            getFromFile(file)
+          } else {
+            complete(StatusCodes.NotFound, Map("error" -> "Image not found"))
           }
         }
       }
