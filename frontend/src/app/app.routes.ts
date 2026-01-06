@@ -50,15 +50,18 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => import('@features/customers/customer-list/customer-list').then((m) => m.CustomerList),
+        loadComponent: () =>
+          import('@features/customers/customer-list/customer-list').then((m) => m.CustomerList),
       },
       {
         path: 'new',
-        loadComponent: () => import('@features/customers/customer-form/customer-form').then((m) => m.CustomerForm),
+        loadComponent: () =>
+          import('@features/customers/customer-form/customer-form').then((m) => m.CustomerForm),
       },
       {
         path: ':id/edit',
-        loadComponent: () => import('@features/customers/customer-form/customer-form').then((m) => m.CustomerForm),
+        loadComponent: () =>
+          import('@features/customers/customer-form/customer-form').then((m) => m.CustomerForm),
       },
     ],
   },
