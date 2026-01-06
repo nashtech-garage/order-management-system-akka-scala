@@ -18,7 +18,7 @@ export class CustomerService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/customers`;
 
-    getCustomers(offset: number = 0, limit: number = 20): Observable<Customer[]> {
+    getCustomers(offset = 0, limit = 20): Observable<Customer[]> {
         const params = new HttpParams()
             .set('offset', offset)
             .set('limit', limit);

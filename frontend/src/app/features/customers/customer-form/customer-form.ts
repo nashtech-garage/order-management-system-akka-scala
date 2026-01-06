@@ -1,11 +1,12 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerService } from '@core/services/customer.service';
 import { Button } from '@shared/components/button/button';
-import { Customer, Address, CreateCustomerRequest, UpdateCustomerRequest, CreateAddressRequest } from '@shared/models/customer.model';
-import { switchMap, of, forkJoin, catchError } from 'rxjs';
+import { Address, CreateCustomerRequest, UpdateCustomerRequest, CreateAddressRequest } from '@shared/models/customer.model';
+import { switchMap, of, forkJoin } from 'rxjs';
 
 @Component({
     selector: 'app-customer-form',
@@ -89,7 +90,7 @@ export class CustomerForm implements OnInit {
 
                 this.isLoading.set(false);
             },
-            error: (err) => {
+            error: () => {
                 this.error.set('Failed to load customer details');
                 this.isLoading.set(false);
             }
@@ -125,7 +126,7 @@ export class CustomerForm implements OnInit {
         }
     }
 
-    private createCustomer(formValue: any) {
+    private createCustomer(formValue: { firstName: string, lastName: string, email: string, phone?: string, addresses?: CreateAddressRequest[] }) {
         const request: CreateCustomerRequest = {
             firstName: formValue.firstName,
             lastName: formValue.lastName,
@@ -136,9 +137,9 @@ export class CustomerForm implements OnInit {
         this.customerService.createCustomer(request).pipe(
             switchMap(customer => {
                 // If we have addresses, we need to add them sequentially
-                const addressRequests = formValue.addresses.map((addr: any) => {
+                const addressRequests = (formValue.addresses || []).map((addr: CreateAddressRequest) => {
                     const addressReq: CreateAddressRequest = { ...addr };
-                    return this.customerService.addAddress(customer.id, addressReq);
+                    return this.customerService.addAddress(customer.id!, addressReq);
                 });
 
                 return addressRequests.length > 0 ? forkJoin(addressRequests) : of(null);
@@ -148,14 +149,14 @@ export class CustomerForm implements OnInit {
                 this.router.navigate(['/customers']);
                 this.isSubmitting.set(false);
             },
-            error: (err) => {
+            error: (err: HttpErrorResponse) => {
                 this.error.set(err.error?.error || 'Failed to create customer');
                 this.isSubmitting.set(false);
             }
         });
     }
 
-    private updateCustomer(formValue: any) {
+    private updateCustomer(formValue: { firstName: string, lastName: string, email: string, phone?: string }) {
         const id = this.customerId();
         if (!id) return;
 
