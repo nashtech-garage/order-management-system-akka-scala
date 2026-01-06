@@ -1,6 +1,8 @@
 name: Cache Cleanup
 
 on:
+  pull_request:
+    branches: [ main ]
   workflow_run:
     workflows:
       - "API Gateway CI"
@@ -31,18 +33,19 @@ jobs:
         run: |
           echo "Fetching caches..."
           
-          # Get all caches sorted by created_at (oldest first)
-          gh extension install actions/gh-actions-cache || true
+          # Get repository info
+          REPO="${{ github.repository }}"
           
-          # Get cache list
-          caches=$(gh actions-cache list --limit 100 --json id,key,createdAt --sort created_at | jq -r '.[] | "\(.id)|\(.key)|\(.createdAt)"')
+          # Get all caches using GitHub CLI
+          echo "Listing all caches..."
+          cache_list=$(gh cache list --limit 100 --json id,key,createdAt,sizeInBytes --repo "$REPO")
           
           # Count total caches
-          total_caches=$(echo "$caches" | wc -l)
+          total_caches=$(echo "$cache_list" | jq '. | length')
           echo "Total caches found: $total_caches"
           
-          # Calculate how many to delete (keep only 20 most recent)
-          keep_count=20
+          # Calculate how many to delete (keep only 10 most recent)
+          keep_count=10
           delete_count=$((total_caches - keep_count))
           
           if [ $delete_count -le 0 ]; then
@@ -51,19 +54,49 @@ jobs:
           fi
           
           echo "Will delete $delete_count old caches to keep only $keep_count most recent..."
+          echo ""
           
-          # Delete old caches (oldest first)
+          # Get caches to delete (oldest first) and save to temp file
+          echo "$cache_list" | jq -r --arg count "$delete_count" 'sort_by(.createdAt) | .[:($count | tonumber)] | .[] | "\(.id)|\(.key)|\(.createdAt)"' > caches_to_delete.txt
+          
+          # Delete old caches
           deleted=0
-          while IFS='|' read -r cache_id cache_key created_at; do
-            if [ $deleted -ge $delete_count ]; then
-              break
-            fi
-            
-            echo "Deleting cache: $cache_key (created: $created_at)"
-            gh actions-cache delete "$cache_id" --confirm || echo "Failed to delete cache $cache_id"
-            ((deleted++))
-          done <<< "$caches"
+          failed=0
           
-          echo "Cleanup completed. Deleted $deleted caches."
+          while IFS='|' read -r cache_id cache_key created_at; do
+            echo "Deleting cache: $cache_key"
+            echo "  ID: $cache_id"
+            echo "  Created: $created_at"
+            
+            # Use cache key for deletion (more reliable than ID)
+            if gh cache delete "$cache_key" --repo "$REPO" 2>&1; then
+              echo "✓ Successfully deleted"
+              deleted=$((deleted + 1))
+            else
+              echo "✗ Failed to delete (trying with ID...)"
+              # Fallback to ID if key doesn't work
+              if gh cache delete "$cache_id" --repo "$REPO" 2>&1; then
+                echo "✓ Successfully deleted using ID"
+                deleted=$((deleted + 1))
+              else
+                echo "✗ Failed with both key and ID"
+                failed=$((failed + 1))
+              fi
+            fi
+            echo ""
+          done < caches_to_delete.txt
+          
+          # Clean up temp file
+          rm -f caches_to_delete.txt
+          
+          echo "================================================"
+          echo "Cleanup completed."
+          echo "Successfully deleted: $deleted caches"
+          echo "Failed to delete: $failed caches"
+          echo "Total attempted: $delete_count caches"
+          echo "================================================"
+          
+          # Exit successfully even if some deletions failed
+          exit 0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
