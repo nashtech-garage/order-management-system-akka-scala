@@ -23,16 +23,18 @@ class ReportStreamProcessor(
         orderDate.isAfter(startDate) && orderDate.isBefore(endDate.plusDays(1))
       }
       
-      val totalRevenue = filteredOrders.filter(_.status != "cancelled").map(_.totalAmount).sum
-      val ordersByStatus = filteredOrders.groupBy(_.status).map { case (status, orders) => 
+      // Exclude cancelled orders from all calculations
+      val activeOrders = filteredOrders.filter(_.status != "cancelled")
+      val totalRevenue = activeOrders.map(_.totalAmount).sum
+      val ordersByStatus = activeOrders.groupBy(_.status).map { case (status, orders) => 
         status -> orders.size 
       }
-      val avgOrderValue = if (filteredOrders.nonEmpty) totalRevenue / filteredOrders.size else BigDecimal(0)
+      val avgOrderValue = if (activeOrders.nonEmpty) totalRevenue / activeOrders.size else BigDecimal(0)
       
       SalesReport(
         startDate = startDate,
         endDate = endDate,
-        totalOrders = filteredOrders.size,
+        totalOrders = activeOrders.size,
         totalRevenue = totalRevenue,
         averageOrderValue = avgOrderValue,
         ordersByStatus = ordersByStatus

@@ -11,7 +11,10 @@ lazy val commonSettings = Seq(
     "-unchecked",
     "-Xlint"
   ),
-  resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure")
+  resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure"),
+  coverageEnabled := true,
+  coverageMinimumStmtTotal := 80,
+  coverageFailOnMinimum := false
 )
 
 // Report service doesn't need database - it calls Order Service API
