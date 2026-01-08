@@ -16,7 +16,7 @@ lazy val commonSettings = Seq(
   coverageMinimumStmtTotal := 80,
   coverageFailOnMinimum := false,
   // Exclude main entry point from coverage
-  coverageExcludedFiles := ".*Main.*"
+  coverageExcludedPackages := ".*ReportMain.*"
 )
 
 // Report service doesn't need database - it calls Order Service API

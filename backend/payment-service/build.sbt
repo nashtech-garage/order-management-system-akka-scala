@@ -18,8 +18,7 @@ lazy val commonSettings = Seq(
   ),
   resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure"),
   // Exclude migration files from coverage
-  coverageExcludedPackages := ".*\\.migration\\..*",
-  coverageExcludedFiles := ".*Migration.*;.*Main.*"
+  coverageExcludedPackages := ".*\\.migration\\..*;.*PaymentMain.*"
 )
 
 lazy val commonRef = RootProject(file("../common"))
