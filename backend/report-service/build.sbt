@@ -14,7 +14,9 @@ lazy val commonSettings = Seq(
   resolvers += "Akka library repository".at(s"https://repo.akka.io/rzfEn62Vj7gzpniEeZE9KJambot-fiba2_CUa6PHuuH-8nM4/secure"),
   coverageEnabled := true,
   coverageMinimumStmtTotal := 80,
-  coverageFailOnMinimum := false
+  coverageFailOnMinimum := false,
+  // Exclude main entry point from coverage
+  coverageExcludedFiles := ".*Main.*"
 )
 
 // Report service doesn't need database - it calls Order Service API
