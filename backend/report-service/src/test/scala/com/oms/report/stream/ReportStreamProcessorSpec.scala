@@ -274,5 +274,254 @@ class ReportStreamProcessorSpec
       result("completed") shouldBe BigDecimal(400)
       result("pending") shouldBe BigDecimal(200)
     }
+
+    "handle orders with missing customer names" in {
+      class MockClientWithMissingData(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          Future.successful(Seq(
+            OrderData(1L, 101L, None, "completed", BigDecimal(100), List.empty, "2024-01-15T00:00:00Z")
+          ))
+        }
+      }
+      
+      val clientWithMissingData = new MockClientWithMissingData
+      val processorWithMissingData = new ReportStreamProcessor(clientWithMissingData)
+      
+      val result = processorWithMissingData.generateCustomerReport().futureValue
+      
+      result should not be empty
+      result.head.customerName shouldBe "Unknown"
+    }
+
+    "handle orders with missing product names" in {
+      class MockClientWithMissingProductNames(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          Future.successful(Seq(
+            OrderData(
+              1L, 101L, Some("Customer"), "completed", BigDecimal(100),
+              List(OrderItemData(1L, None, 1, BigDecimal(100))),
+              "2024-01-15T00:00:00Z"
+            )
+          ))
+        }
+      }
+      
+      val clientWithMissingData = new MockClientWithMissingProductNames
+      val processorWithMissingData = new ReportStreamProcessor(clientWithMissingData)
+      
+      val result = processorWithMissingData.generateProductReport().futureValue
+      
+      result should not be empty
+      result.head.productName shouldBe "Unknown"
+    }
+
+    "calculate correct revenue from multiple items" in {
+      val result = processor.generateProductReport().futureValue
+      
+      // Product A: 2 units @ 100 + 3 units @ 100 = 500
+      val productA = result.find(_.productName == "Product A").get
+      productA.totalRevenue shouldBe BigDecimal(500.00)
+      
+      // Product B: 1 unit @ 300 = 300 (cancelled order excluded)
+      val productB = result.find(_.productName == "Product B").get
+      productB.totalRevenue shouldBe BigDecimal(300.00)
+    }
+
+    "handle zero revenue products" in {
+      class MockClientWithFreeProducts(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          Future.successful(Seq(
+            OrderData(
+              1L, 101L, Some("Customer"), "completed", BigDecimal(0),
+              List(OrderItemData(1L, Some("Free Product"), 10, BigDecimal(0))),
+              "2024-01-15T00:00:00Z"
+            )
+          ))
+        }
+      }
+      
+      val clientWithFreeProducts = new MockClientWithFreeProducts
+      val processorWithFreeProducts = new ReportStreamProcessor(clientWithFreeProducts)
+      
+      val result = processorWithFreeProducts.generateProductReport().futureValue
+      
+      result should not be empty
+      result.head.totalRevenue shouldBe BigDecimal(0)
+      result.head.totalQuantitySold shouldBe 10
+    }
+
+    "handle customer with multiple orders correctly" in {
+      val result = processor.generateCustomerReport().futureValue
+      
+      // John Doe has 2 orders
+      val johnDoe = result.find(_.customerName == "John Doe").get
+      johnDoe.totalOrders shouldBe 2
+      johnDoe.totalSpent shouldBe BigDecimal(1200.00)
+    }
+
+    "sort customer report by total spent descending" in {
+      val result = processor.generateCustomerReport().futureValue
+      
+      // Verify sorting
+      result.head.totalSpent should be >= result.last.totalSpent
+      for (i <- 0 until result.size - 1) {
+        result(i).totalSpent should be >= result(i + 1).totalSpent
+      }
+    }
+
+    "sort product report by revenue descending" in {
+      val result = processor.generateProductReport().futureValue
+      
+      // Verify sorting
+      result.head.totalRevenue should be >= result.last.totalRevenue
+      for (i <- 0 until result.size - 1) {
+        result(i).totalRevenue should be >= result(i + 1).totalRevenue
+      }
+    }
+
+    "handle orders on same date correctly" in {
+      class MockClientWithSameDateOrders(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          Future.successful(Seq(
+            OrderData(1L, 101L, Some("C1"), "completed", BigDecimal(100), List.empty, "2024-01-15T10:00:00Z"),
+            OrderData(2L, 102L, Some("C2"), "completed", BigDecimal(200), List.empty, "2024-01-15T14:00:00Z"),
+            OrderData(3L, 103L, Some("C3"), "completed", BigDecimal(300), List.empty, "2024-01-15T18:00:00Z")
+          ))
+        }
+      }
+      
+      val clientWithSameDateOrders = new MockClientWithSameDateOrders
+      val processorWithSameDateOrders = new ReportStreamProcessor(clientWithSameDateOrders)
+      
+      val result = processorWithSameDateOrders.generateDailyStats(30).futureValue
+      
+      result.size shouldBe 1
+      result.head.date shouldBe "2024-01-15"
+      result.head.orderCount shouldBe 3
+      result.head.revenue shouldBe BigDecimal(600.00)
+    }
+
+    "handle date filtering at boundaries correctly" in {
+      val startDate = LocalDateTime.of(2024, 1, 15, 0, 0)
+      val endDate = LocalDateTime.of(2024, 1, 17, 23, 59)
+      
+      val result = processor.generateSalesReport(startDate, endDate).futureValue
+      
+      // Should include orders on 2024-01-15, 2024-01-16, and 2024-01-17
+      result.totalOrders shouldBe 3
+    }
+
+    "handle single order correctly" in {
+      class MockClientWithSingleOrder(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          Future.successful(Seq(
+            OrderData(1L, 101L, Some("Customer"), "completed", BigDecimal(100), List.empty, "2024-01-15T10:00:00Z")
+          ))
+        }
+      }
+      
+      val clientWithSingleOrder = new MockClientWithSingleOrder
+      val processorWithSingleOrder = new ReportStreamProcessor(clientWithSingleOrder)
+      
+      val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
+      val endDate = LocalDateTime.of(2024, 1, 31, 23, 59)
+      val result = processorWithSingleOrder.generateSalesReport(startDate, endDate).futureValue
+      
+      result.totalOrders shouldBe 1
+      result.totalRevenue shouldBe BigDecimal(100)
+      result.averageOrderValue shouldBe BigDecimal(100)
+    }
+
+    "handle large number of orders efficiently" in {
+      class MockClientWithManyOrders(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          val orders = (1 to 100).map { i =>
+            OrderData(
+              i.toLong, i.toLong, Some(s"Customer $i"), "completed",
+              BigDecimal(100 * i), List.empty, s"2024-01-${(i % 28) + 1}T10:00:00Z"
+            )
+          }
+          Future.successful(orders)
+        }
+      }
+      
+      val clientWithManyOrders = new MockClientWithManyOrders
+      val processorWithManyOrders = new ReportStreamProcessor(clientWithManyOrders)
+      
+      val result = processorWithManyOrders.generateProductReport().futureValue
+      
+      // Should complete without errors
+      result shouldBe empty  // No items in orders
+    }
+
+    "filter cancelled orders consistently across all report types" in {
+      // Verify cancelled orders are excluded from sales report
+      val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
+      val endDate = LocalDateTime.of(2024, 1, 31, 23, 59)
+      val salesReport = processor.generateSalesReport(startDate, endDate).futureValue
+      salesReport.ordersByStatus should not contain key("cancelled")
+      
+      // Verify cancelled orders are excluded from product report
+      val productReport = processor.generateProductReport().futureValue
+      val cancelledProduct = productReport.find(_.productName == "Product B")
+      cancelledProduct.map(_.totalRevenue) shouldBe Some(BigDecimal(300.00))
+      
+      // Verify cancelled orders are excluded from customer report
+      val customerReport = processor.generateCustomerReport().futureValue
+      customerReport.exists(_.customerName == "Bob Wilson") shouldBe false
+      
+      // Verify cancelled orders are excluded from daily stats
+      val dailyStats = processor.generateDailyStats(30).futureValue
+      val cancelledOrderDate = dailyStats.find(_.date == "2024-01-18")
+      cancelledOrderDate shouldBe None
+    }
+
+    "calculate daily stats with correct aggregations" in {
+      val result = processor.generateDailyStats(30).futureValue
+      
+      // Total revenue from daily stats should match sum of individual days
+      val totalFromDailyStats = result.map(_.revenue).sum
+      val totalFromOrders = processor.generateSalesReport(
+        LocalDateTime.of(2024, 1, 1, 0, 0),
+        LocalDateTime.of(2024, 1, 31, 23, 59)
+      ).futureValue.totalRevenue
+      
+      totalFromDailyStats shouldBe totalFromOrders
+    }
+
+    "handle empty order list gracefully" in {
+      class MockClientWithNoOrders(implicit system: akka.actor.typed.ActorSystem[_], ec: ExecutionContext) 
+        extends MockReportServiceClient {
+        override def getOrders(offset: Int, limit: Int): Future[Seq[OrderData]] = {
+          Future.successful(Seq.empty)
+        }
+      }
+      
+      val clientWithNoOrders = new MockClientWithNoOrders
+      val processorWithNoOrders = new ReportStreamProcessor(clientWithNoOrders)
+      
+      val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
+      val endDate = LocalDateTime.of(2024, 1, 31, 23, 59)
+      
+      val salesReport = processorWithNoOrders.generateSalesReport(startDate, endDate).futureValue
+      salesReport.totalOrders shouldBe 0
+      salesReport.totalRevenue shouldBe BigDecimal(0)
+      salesReport.averageOrderValue shouldBe BigDecimal(0)
+      
+      val productReport = processorWithNoOrders.generateProductReport().futureValue
+      productReport shouldBe empty
+      
+      val customerReport = processorWithNoOrders.generateCustomerReport().futureValue
+      customerReport shouldBe empty
+      
+      val dailyStats = processorWithNoOrders.generateDailyStats(7).futureValue
+      dailyStats shouldBe empty
+    }
   }
 }

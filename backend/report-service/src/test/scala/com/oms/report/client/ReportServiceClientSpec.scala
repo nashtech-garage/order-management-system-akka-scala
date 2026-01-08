@@ -1,7 +1,6 @@
 package com.oms.report.client
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import org.scalatest.concurrent.ScalaFutures
@@ -12,7 +11,11 @@ import spray.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class MockHttpServer extends ReportClientFormats {
+trait HttpServerMock {
+  def handleRequest(request: HttpRequest)(implicit ec: ExecutionContext): Future[HttpResponse]
+}
+
+class MockHttpServer extends ReportClientFormats with HttpServerMock {
   
   def handleRequest(request: HttpRequest)(implicit ec: ExecutionContext): Future[HttpResponse] = {
     request.uri.path.toString() match {
@@ -94,6 +97,21 @@ class MockHttpServer extends ReportClientFormats {
   }
 }
 
+class FailingMockHttpServer extends ReportClientFormats with HttpServerMock {
+  def handleRequest(request: HttpRequest)(implicit ec: ExecutionContext): Future[HttpResponse] = {
+    request.uri.path.toString() match {
+      case path if path.contains("error") =>
+        Future.successful(HttpResponse(status = StatusCodes.InternalServerError))
+      case path if path.contains("notfound") =>
+        Future.successful(HttpResponse(status = StatusCodes.NotFound))
+      case path if path.contains("badrequest") =>
+        Future.successful(HttpResponse(status = StatusCodes.BadRequest))
+      case _ =>
+        Future.successful(HttpResponse(status = StatusCodes.ServiceUnavailable))
+    }
+  }
+}
+
 class ReportServiceClientSpec
   extends ScalaTestWithActorTestKit
   with AnyWordSpecLike
@@ -106,8 +124,7 @@ class ReportServiceClientSpec
     interval = Span(50, Millis)
   )
   
-  // Create a mock HTTP client
-  class TestReportServiceClient(orderServiceUrl: String, mockServer: MockHttpServer)
+  class TestReportServiceClient(orderServiceUrl: String, mockServer: HttpServerMock)
     extends ReportServiceClient(orderServiceUrl)(system, ec) {
     
     private val mockHttp = new {
@@ -174,6 +191,9 @@ class ReportServiceClientSpec
   val mockServer = new MockHttpServer
   val client = new TestReportServiceClient("http://localhost:8081", mockServer)
   
+  val failingMockServer = new FailingMockHttpServer
+  val failingClient = new TestReportServiceClient("http://localhost:8081/error", failingMockServer)
+  
   "ReportServiceClient" should {
     
     "fetch all orders successfully" in {
@@ -191,8 +211,20 @@ class ReportServiceClientSpec
       val result = client.getOrders(10, 50).futureValue
       
       result should not be empty
-      // Mock server returns same data regardless of pagination
       result.size shouldBe 3
+    }
+    
+    "fetch orders with default pagination" in {
+      val result = client.getOrders().futureValue
+      
+      result should not be empty
+      result.size shouldBe 3
+    }
+    
+    "return empty sequence when fetching orders fails" in {
+      val result = failingClient.getOrders(0, 100).futureValue
+      
+      result shouldBe empty
     }
     
     "fetch orders by status - completed" in {
@@ -221,6 +253,19 @@ class ReportServiceClientSpec
       result.foreach(_.status shouldBe "completed")
     }
     
+    "fetch orders by status with default pagination" in {
+      val result = client.getOrdersByStatus("completed").futureValue
+      
+      result should not be empty
+      result.foreach(_.status shouldBe "completed")
+    }
+    
+    "return empty sequence when fetching orders by status fails" in {
+      val result = failingClient.getOrdersByStatus("completed", 0, 100).futureValue
+      
+      result shouldBe empty
+    }
+    
     "fetch order stats successfully" in {
       val result = client.getOrderStats().futureValue
       
@@ -229,6 +274,16 @@ class ReportServiceClientSpec
       result.completedOrders shouldBe 7
       result.cancelledOrders shouldBe 1
       result.totalRevenue shouldBe BigDecimal(5000.00)
+    }
+    
+    "return default stats when fetching order stats fails" in {
+      val result = failingClient.getOrderStats().futureValue
+      
+      result.totalOrders shouldBe 0
+      result.pendingOrders shouldBe 0
+      result.completedOrders shouldBe 0
+      result.cancelledOrders shouldBe 0
+      result.totalRevenue shouldBe BigDecimal(0)
     }
     
     "parse order data with customer information" in {
@@ -255,6 +310,23 @@ class ReportServiceClientSpec
       
       result.foreach { order =>
         order.totalAmount should be > BigDecimal(0)
+      }
+    }
+    
+    "handle multiple order items" in {
+      val result = client.getOrders(0, 100).futureValue
+      val orderWithMultipleItems = result.find(_.id == 3L).get
+      
+      orderWithMultipleItems.items.size shouldBe 1
+      orderWithMultipleItems.items.head.quantity shouldBe 3
+    }
+    
+    "preserve order timestamps" in {
+      val result = client.getOrders(0, 100).futureValue
+      
+      result.foreach { order =>
+        order.createdAt should not be empty
+        order.createdAt should include("2024")
       }
     }
   }
@@ -329,6 +401,64 @@ class ReportServiceClientSpec
       
       parsed.customerName shouldBe None
       parsed.items.head.productName shouldBe None
+    }
+    
+    "handle empty order items list" in {
+      val formats = new ReportClientFormats {}
+      import formats._
+      
+      val order = OrderData(
+        id = 1L,
+        customerId = 2L,
+        customerName = Some("Test"),
+        status = "pending",
+        totalAmount = BigDecimal(0),
+        items = List.empty,
+        createdAt = "2024-01-01T00:00:00Z"
+      )
+      val json = order.toJson
+      val parsed = json.convertTo[OrderData]
+      
+      parsed.items shouldBe empty
+    }
+    
+    "handle large BigDecimal values" in {
+      val formats = new ReportClientFormats {}
+      import formats._
+      
+      val stats = OrderStats(
+        totalOrders = 1000000,
+        pendingOrders = 100000,
+        completedOrders = 850000,
+        cancelledOrders = 50000,
+        totalRevenue = BigDecimal("999999999.99")
+      )
+      val json = stats.toJson
+      val parsed = json.convertTo[OrderStats]
+      
+      parsed.totalRevenue shouldBe BigDecimal("999999999.99")
+    }
+    
+    "handle zero values in OrderStats" in {
+      val formats = new ReportClientFormats {}
+      import formats._
+      
+      val stats = OrderStats(0, 0, 0, 0, BigDecimal(0))
+      val json = stats.toJson
+      val parsed = json.convertTo[OrderStats]
+      
+      parsed shouldBe stats
+    }
+    
+    "preserve precision in BigDecimal" in {
+      val formats = new ReportClientFormats {}
+      import formats._
+      
+      val item = OrderItemData(1L, Some("Product"), 1, BigDecimal("99.999"))
+      val json = item.toJson
+      val parsed = json.convertTo[OrderItemData]
+      
+      parsed.unitPrice shouldBe BigDecimal("99.999")
     }
   }
 }
