@@ -207,5 +207,254 @@ class ReportActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wit
         case other => fail(s"Expected SalesReportGenerated but got $other")
       }
     }
+
+    "handle product report generation failures" in {
+      class FailingMockProcessor extends ReportStreamProcessor(null)(ExecutionContext.global) {
+        override def generateProductReport(): Future[Seq[ProductReport]] = {
+          Future.failed(new RuntimeException("Product report generation failed"))
+        }
+      }
+      
+      val failingProcessor = new FailingMockProcessor()
+      val reportActor = spawn(ReportActor(failingProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GenerateProductReport(probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.ReportError(message) =>
+          message should include("Failed to generate product report")
+        case other => fail(s"Expected ReportError but got $other")
+      }
+    }
+
+    "handle customer report generation failures" in {
+      class FailingMockProcessor extends ReportStreamProcessor(null)(ExecutionContext.global) {
+        override def generateCustomerReport(): Future[Seq[CustomerReport]] = {
+          Future.failed(new RuntimeException("Customer report failed"))
+        }
+      }
+      
+      val failingProcessor = new FailingMockProcessor()
+      val reportActor = spawn(ReportActor(failingProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GenerateCustomerReport(probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.ReportError(message) =>
+          message should include("Failed to generate customer report")
+        case other => fail(s"Expected ReportError but got $other")
+      }
+    }
+
+    "handle daily stats generation failures" in {
+      class FailingMockProcessor extends ReportStreamProcessor(null)(ExecutionContext.global) {
+        override def generateDailyStats(days: Int): Future[Seq[DailyStats]] = {
+          Future.failed(new RuntimeException("Stats generation failed"))
+        }
+      }
+      
+      val failingProcessor = new FailingMockProcessor()
+      val reportActor = spawn(ReportActor(failingProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GenerateDailyStats(7, probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.ReportError(message) =>
+          message should include("Failed to generate daily stats")
+        case other => fail(s"Expected ReportError but got $other")
+      }
+    }
+
+    "handle dashboard summary generation failures" in {
+      class FailingMockProcessor extends ReportStreamProcessor(null)(ExecutionContext.global) {
+        override def generateProductReport(): Future[Seq[ProductReport]] = {
+          Future.failed(new RuntimeException("Dashboard failed"))
+        }
+        override def generateCustomerReport(): Future[Seq[CustomerReport]] = {
+          Future.successful(Seq.empty)
+        }
+        override def generateDailyStats(days: Int): Future[Seq[DailyStats]] = {
+          Future.successful(Seq.empty)
+        }
+      }
+      
+      val failingProcessor = new FailingMockProcessor()
+      val reportActor = spawn(ReportActor(failingProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GetDashboardSummary(probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.ReportError(message) =>
+          message should include("Failed to generate dashboard")
+        case other => fail(s"Expected ReportError but got $other")
+      }
+    }
+
+    "handle invalid date formats correctly" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      // Test with completely invalid date
+      reportActor ! ReportActor.GenerateSalesReport("not-a-date", "also-not-a-date", probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.ReportError(message) =>
+          message should include("Failed to generate sales report")
+        case other => fail(s"Expected ReportError but got $other")
+      }
+    }
+
+    "handle partial date formats correctly" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      // Test with partial date format
+      reportActor ! ReportActor.GenerateSalesReport("2024-01", "2024-02", probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.ReportError(message) =>
+          message should include("Failed to generate sales report")
+        case other => fail(s"Expected ReportError but got $other")
+      }
+    }
+
+    "generate dashboard with correct aggregations" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GetDashboardSummary(probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.DashboardSummary(totalOrders, totalRevenue, topProducts, topCustomers, recentStats) =>
+          // Verify top products are limited to 5
+          topProducts.size should be <= 5
+          // Verify top customers are limited to 5
+          topCustomers.size should be <= 5
+          // Verify recent stats are included
+          recentStats should not be empty
+        case other => fail(s"Expected DashboardSummary but got $other")
+      }
+    }
+
+    "handle empty product reports in dashboard" in {
+      class EmptyDataMockProcessor extends ReportStreamProcessor(null)(ExecutionContext.global) {
+        override def generateProductReport(): Future[Seq[ProductReport]] = {
+          Future.successful(Seq.empty)
+        }
+        override def generateCustomerReport(): Future[Seq[CustomerReport]] = {
+          Future.successful(Seq.empty)
+        }
+        override def generateDailyStats(days: Int): Future[Seq[DailyStats]] = {
+          Future.successful(Seq.empty)
+        }
+      }
+      
+      val emptyProcessor = new EmptyDataMockProcessor()
+      val reportActor = spawn(ReportActor(emptyProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GetDashboardSummary(probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.DashboardSummary(totalOrders, totalRevenue, topProducts, topCustomers, recentStats) =>
+          totalOrders shouldBe 0
+          totalRevenue shouldBe BigDecimal(0)
+          topProducts shouldBe empty
+          topCustomers shouldBe empty
+          recentStats shouldBe empty
+        case other => fail(s"Expected DashboardSummary but got $other")
+      }
+    }
+
+    "process multiple requests in sequence" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe1 = createTestProbe[ReportActor.Response]()
+      val probe2 = createTestProbe[ReportActor.Response]()
+
+      // Send first request
+      reportActor ! ReportActor.GenerateProductReport(probe1.ref)
+      probe1.expectMessageType[ReportActor.ProductReportGenerated]
+
+      // Send second request
+      reportActor ! ReportActor.GenerateCustomerReport(probe2.ref)
+      probe2.expectMessageType[ReportActor.CustomerReportGenerated]
+    }
+
+    "handle large date ranges" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GenerateSalesReport("2020-01-01", "2024-12-31", probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.SalesReportGenerated(report) =>
+          report.startDate.getYear shouldBe 2020
+          report.endDate.getYear shouldBe 2024
+        case other => fail(s"Expected SalesReportGenerated but got $other")
+      }
+    }
+
+    "handle same start and end dates" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GenerateSalesReport("2024-01-15", "2024-01-15", probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.SalesReportGenerated(report) =>
+          report.startDate.toLocalDate shouldBe report.endDate.toLocalDate
+        case other => fail(s"Expected SalesReportGenerated but got $other")
+      }
+    }
+
+    "handle future dates in sales report" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      val probe = createTestProbe[ReportActor.Response]()
+
+      reportActor ! ReportActor.GenerateSalesReport("2030-01-01", "2030-12-31", probe.ref)
+
+      val response = probe.receiveMessage()
+      response match {
+        case ReportActor.SalesReportGenerated(report) =>
+          report.startDate.getYear shouldBe 2030
+        case other => fail(s"Expected SalesReportGenerated but got $other")
+      }
+    }
+
+    "handle daily stats with various day counts" in {
+      val mockProcessor = new MockReportStreamProcessor()
+      val reportActor = spawn(ReportActor(mockProcessor))
+      
+      // Test with 1 day
+      val probe1 = createTestProbe[ReportActor.Response]()
+      reportActor ! ReportActor.GenerateDailyStats(1, probe1.ref)
+      probe1.expectMessageType[ReportActor.DailyStatsGenerated]
+
+      // Test with 365 days
+      val probe2 = createTestProbe[ReportActor.Response]()
+      reportActor ! ReportActor.GenerateDailyStats(365, probe2.ref)
+      probe2.expectMessageType[ReportActor.DailyStatsGenerated]
+    }
   }
 }

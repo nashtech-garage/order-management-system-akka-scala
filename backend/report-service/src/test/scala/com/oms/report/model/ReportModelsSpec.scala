@@ -217,5 +217,222 @@ class ReportModelsSpec extends AnyWordSpec with Matchers {
       summary.parameters should contain key "startDate"
       summary.parameters should contain key "endDate"
     }
+
+    "handle empty parameters" in {
+      val now = LocalDateTime.now()
+      val summary = ReportSummary(
+        reportType = "dashboard",
+        generatedAt = now,
+        parameters = Map.empty
+      )
+
+      summary.parameters shouldBe empty
+    }
+
+    "support different report types" in {
+      val now = LocalDateTime.now()
+      val reportTypes = Seq("sales", "product", "customer", "daily", "dashboard")
+      
+      reportTypes.foreach { reportType =>
+        val summary = ReportSummary(reportType, now, Map.empty)
+        summary.reportType shouldBe reportType
+      }
+    }
+  }
+
+  "SalesReport" should {
+    "handle large order counts" in {
+      val now = LocalDateTime.now()
+      val report = SalesReport(
+        startDate = now,
+        endDate = now.plusMonths(1),
+        totalOrders = 1000000,
+        totalRevenue = BigDecimal("50000000.00"),
+        averageOrderValue = BigDecimal("50.00"),
+        ordersByStatus = Map("completed" -> 900000, "pending" -> 100000)
+      )
+
+      report.totalOrders shouldBe 1000000
+      report.totalRevenue shouldBe BigDecimal("50000000.00")
+    }
+
+    "handle zero average order value" in {
+      val now = LocalDateTime.now()
+      val report = SalesReport(
+        startDate = now,
+        endDate = now.plusDays(7),
+        totalOrders = 0,
+        totalRevenue = BigDecimal(0),
+        averageOrderValue = BigDecimal(0),
+        ordersByStatus = Map.empty
+      )
+
+      report.averageOrderValue shouldBe BigDecimal(0)
+    }
+
+    "handle single order status" in {
+      val now = LocalDateTime.now()
+      val report = SalesReport(
+        startDate = now,
+        endDate = now.plusDays(7),
+        totalOrders = 50,
+        totalRevenue = BigDecimal(25000),
+        averageOrderValue = BigDecimal(500),
+        ordersByStatus = Map("completed" -> 50)
+      )
+
+      report.ordersByStatus.size shouldBe 1
+      report.ordersByStatus("completed") shouldBe 50
+    }
+
+    "handle date ranges spanning years" in {
+      val startDate = LocalDateTime.of(2023, 1, 1, 0, 0)
+      val endDate = LocalDateTime.of(2024, 12, 31, 23, 59)
+      val report = SalesReport(
+        startDate = startDate,
+        endDate = endDate,
+        totalOrders = 1000,
+        totalRevenue = BigDecimal(500000),
+        averageOrderValue = BigDecimal(500),
+        ordersByStatus = Map("completed" -> 1000)
+      )
+
+      report.startDate.getYear shouldBe 2023
+      report.endDate.getYear shouldBe 2024
+    }
+  }
+
+  "ProductReport" should {
+    "handle large quantities" in {
+      val report = ProductReport(
+        productId = 1L,
+        productName = "Popular Product",
+        totalQuantitySold = 1000000,
+        totalRevenue = BigDecimal("50000000.00")
+      )
+
+      report.totalQuantitySold shouldBe 1000000
+      report.totalRevenue shouldBe BigDecimal("50000000.00")
+    }
+
+    "compare reports by revenue" in {
+      val report1 = ProductReport(1L, "Product A", 100, BigDecimal(5000))
+      val report2 = ProductReport(2L, "Product B", 50, BigDecimal(3000))
+      
+      report1.totalRevenue should be > report2.totalRevenue
+    }
+
+    "compare reports by quantity" in {
+      val report1 = ProductReport(1L, "Product A", 100, BigDecimal(5000))
+      val report2 = ProductReport(2L, "Product B", 50, BigDecimal(3000))
+      
+      report1.totalQuantitySold should be > report2.totalQuantitySold
+    }
+
+    "handle decimal quantities in calculations" in {
+      val report = ProductReport(
+        productId = 1L,
+        productName = "Product",
+        totalQuantitySold = 33,
+        totalRevenue = BigDecimal("999.99")
+      )
+
+      val avgPrice = report.totalRevenue / report.totalQuantitySold
+      avgPrice shouldBe BigDecimal("999.99") / 33
+    }
+  }
+
+  "CustomerReport" should {
+    "handle large spending amounts" in {
+      val report = CustomerReport(
+        customerId = 1L,
+        customerName = "Enterprise Customer",
+        totalOrders = 10000,
+        totalSpent = BigDecimal("10000000.00")
+      )
+
+      report.totalOrders shouldBe 10000
+      report.totalSpent shouldBe BigDecimal("10000000.00")
+    }
+
+    "compare customers by total spent" in {
+      val customer1 = CustomerReport(1L, "Customer A", 10, BigDecimal(10000))
+      val customer2 = CustomerReport(2L, "Customer B", 5, BigDecimal(5000))
+      
+      customer1.totalSpent should be > customer2.totalSpent
+    }
+
+    "compare customers by order count" in {
+      val customer1 = CustomerReport(1L, "Customer A", 10, BigDecimal(5000))
+      val customer2 = CustomerReport(2L, "Customer B", 5, BigDecimal(5000))
+      
+      customer1.totalOrders should be > customer2.totalOrders
+    }
+
+    "handle special characters in customer names" in {
+      val report = CustomerReport(
+        customerId = 1L,
+        customerName = "O'Brien & Co., Ltd.",
+        totalOrders = 5,
+        totalSpent = BigDecimal(5000)
+      )
+
+      report.customerName shouldBe "O'Brien & Co., Ltd."
+    }
+  }
+
+  "DailyStats" should {
+    "handle high volume days" in {
+      val stats = DailyStats(
+        date = "2024-01-01",
+        orderCount = 100000,
+        revenue = BigDecimal("5000000.00")
+      )
+
+      stats.orderCount shouldBe 100000
+      stats.revenue shouldBe BigDecimal("5000000.00")
+    }
+
+    "compare stats by date" in {
+      val stats1 = DailyStats("2024-01-01", 10, BigDecimal(1000))
+      val stats2 = DailyStats("2024-01-02", 15, BigDecimal(1500))
+      
+      stats1.date should be < stats2.date
+    }
+
+    "compare stats by revenue" in {
+      val stats1 = DailyStats("2024-01-01", 10, BigDecimal(1000))
+      val stats2 = DailyStats("2024-01-02", 15, BigDecimal(2000))
+      
+      stats2.revenue should be > stats1.revenue
+    }
+
+    "handle date string format correctly" in {
+      val stats = DailyStats("2024-12-31", 100, BigDecimal(10000))
+      
+      stats.date should include("2024")
+      stats.date should include("12")
+      stats.date should include("31")
+    }
+  }
+
+  "GenerateReportRequest" should {
+    "validate date order" in {
+      val request = GenerateReportRequest(
+        startDate = "2024-01-01",
+        endDate = "2024-12-31"
+      )
+
+      request.startDate should be < request.endDate
+    }
+
+    "handle same start and end dates" in {
+      val request = GenerateReportRequest(
+        startDate = "2024-01-01",
+        endDate = "2024-01-01"
+      )
+
+      request.startDate shouldBe request.endDate
+    }
   }
 }
