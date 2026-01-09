@@ -21,5 +21,22 @@ lazy val `api-gateway` = (project in file("."))
   .settings(commonSettings: _*)
   .settings(
     name := "api-gateway",
+    libraryDependencies ++= Seq(
+      // Akka Streams and HTTP
+      "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
+      "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
+      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion,
+      
+      // Logging
+      "ch.qos.logback" % "logback-classic" % LogbackVersion,
+      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
+      
+      // Testing
+      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
+      "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
+      "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test
+    )
   )
   .dependsOn(commonRef)
