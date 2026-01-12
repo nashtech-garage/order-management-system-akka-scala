@@ -1,6 +1,8 @@
 name: Cache Cleanup
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_run:
@@ -38,65 +40,93 @@ jobs:
           
           # Get all caches using GitHub CLI
           echo "Listing all caches..."
-          cache_list=$(gh cache list --limit 100 --json id,key,createdAt,sizeInBytes --repo "$REPO")
+          cache_list=$(gh cache list --limit 200 --json id,key,createdAt,sizeInBytes --repo "$REPO")
           
           # Count total caches
           total_caches=$(echo "$cache_list" | jq '. | length')
           echo "Total caches found: $total_caches"
+          echo ""
           
-          # Calculate how many to delete (keep only 10 most recent)
-          keep_count=10
-          delete_count=$((total_caches - keep_count))
-          
-          if [ $delete_count -le 0 ]; then
-            echo "No caches to delete. Current cache count ($total_caches) is within limit ($keep_count)."
+          if [ $total_caches -eq 0 ]; then
+            echo "No caches found."
             exit 0
           fi
           
-          echo "Will delete $delete_count old caches to keep only $keep_count most recent..."
+          # Group caches by service and keep only 1 most recent per service
+          echo "Grouping caches by service..."
+          
+          # Extract service names and find caches to keep (1 per service)
+          services=$(echo "$cache_list" | jq -r '.[].key' | sed -E 's/^[^-]+-[^-]+-([^-]+)-.*/\1/' | sort -u)
+          
+          echo "Services found:"
+          echo "$services"
           echo ""
           
-          # Get caches to delete (oldest first) and save to temp file
-          echo "$cache_list" | jq -r --arg count "$delete_count" 'sort_by(.createdAt) | .[:($count | tonumber)] | .[] | "\(.id)|\(.key)|\(.createdAt)"' > caches_to_delete.txt
+          # Create list of cache IDs to keep (1 most recent per service)
+          keep_cache_ids=""
+          for service in $services; do
+            # Find the most recent cache for this service
+            most_recent=$(echo "$cache_list" | jq -r --arg svc "$service" '
+              [.[] | select(.key | contains("-" + $svc + "-"))] | 
+              sort_by(.createdAt) | 
+              reverse | 
+              .[0].id // empty
+            ')
+            
+            if [ -n "$most_recent" ]; then
+              echo "Keeping most recent cache for service: $service (ID: $most_recent)"
+              keep_cache_ids="$keep_cache_ids $most_recent"
+            fi
+          done
+          echo ""
           
-          # Delete old caches
+          # Get all caches to delete (those not in keep list)
           deleted=0
           failed=0
           
-          while IFS='|' read -r cache_id cache_key created_at; do
+          # Create temp file to track counters
+          temp_file=$(mktemp)
+          echo "0 0" > "$temp_file"
+          
+          echo "$cache_list" | jq -r '.[] | "\(.id)|\(.key)|\(.createdAt)"' | while IFS='|' read -r cache_id cache_key created_at; do
+            # Check if this cache should be kept
+            if echo "$keep_cache_ids" | grep -q "\b$cache_id\b"; then
+              continue
+            fi
+            
             echo "Deleting cache: $cache_key"
             echo "  ID: $cache_id"
             echo "  Created: $created_at"
             
-            # Use cache key for deletion (more reliable than ID)
-            if gh cache delete "$cache_key" --repo "$REPO" 2>&1; then
+            # Read current counters
+            read current_deleted current_failed < "$temp_file"
+            
+            # Use cache key for deletion
+            if gh cache delete "$cache_key" --repo "$REPO" 2>&1 | grep -q "deleted\|removed"; then
               echo "✓ Successfully deleted"
-              deleted=$((deleted + 1))
+              current_deleted=$((current_deleted + 1))
             else
-              echo "✗ Failed to delete (trying with ID...)"
-              # Fallback to ID if key doesn't work
-              if gh cache delete "$cache_id" --repo "$REPO" 2>&1; then
-                echo "✓ Successfully deleted using ID"
-                deleted=$((deleted + 1))
-              else
-                echo "✗ Failed with both key and ID"
-                failed=$((failed + 1))
-              fi
+              echo "✗ Failed to delete"
+              current_failed=$((current_failed + 1))
             fi
+            
+            # Update temp file
+            echo "$current_deleted $current_failed" > "$temp_file"
             echo ""
-          done < caches_to_delete.txt
+          done
           
-          # Clean up temp file
-          rm -f caches_to_delete.txt
+          # Read final counters
+          read deleted failed < "$temp_file"
+          rm -f "$temp_file"
           
           echo "================================================"
           echo "Cleanup completed."
+          echo "Total caches before cleanup: $total_caches"
+          echo "Caches kept (1 per service): $(echo $keep_cache_ids | wc -w)"
           echo "Successfully deleted: $deleted caches"
           echo "Failed to delete: $failed caches"
-          echo "Total attempted: $delete_count caches"
           echo "================================================"
           
-          # Exit successfully even if some deletions failed
           exit 0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
