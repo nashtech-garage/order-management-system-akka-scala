@@ -19,6 +19,8 @@ trait UserJsonFormats extends JsonSupport {
   implicit val createUserRequestFormat: RootJsonFormat[CreateUserRequest] = jsonFormat3(CreateUserRequest)
   implicit val loginRequestFormat: RootJsonFormat[LoginRequest] = jsonFormat2(LoginRequest)
   implicit val updateUserRequestFormat: RootJsonFormat[UpdateUserRequest] = jsonFormat2(UpdateUserRequest)
+  implicit val updateProfileRequestFormat: RootJsonFormat[UpdateProfileRequest] = jsonFormat2(UpdateProfileRequest)
+  implicit val changePasswordRequestFormat: RootJsonFormat[ChangePasswordRequest] = jsonFormat2(ChangePasswordRequest)
   implicit val userResponseFormat: RootJsonFormat[UserResponse] = jsonFormat5(UserResponse.apply)
 }
 
@@ -93,6 +95,75 @@ class UserRoutes(userActor: ActorRef[UserActor.Command])(implicit system: ActorS
               }
             case None =>
               complete(StatusCodes.Unauthorized, Map("valid" -> "false", "error" -> "Missing authorization header"))
+          }
+        }
+      } ~
+      path("profile") {
+        get {
+          optionalHeaderValueByName("Authorization") {
+            case Some(authHeader) =>
+              val token = authHeader.replace("Bearer ", "")
+              // Validate token and extract user info
+              import com.oms.common.security.JwtService
+              JwtService.validateToken(token) match {
+                case Some(jwtUser) =>
+                  val response = userActor.ask(ref => GetCurrentUser(jwtUser.userId, ref))
+                  onSuccess(response) {
+                    case UserFound(user) => complete(StatusCodes.OK, user)
+                    case UserError(msg) => complete(StatusCodes.NotFound, Map("error" -> msg))
+                    case _ => complete(StatusCodes.InternalServerError, Map("error" -> "Failed to fetch user profile"))
+                  }
+                case None =>
+                  complete(StatusCodes.Unauthorized, Map("error" -> "Invalid or expired token"))
+              }
+            case None =>
+              complete(StatusCodes.Unauthorized, Map("error" -> "Missing authorization header"))
+          }
+        } ~
+        put {
+          optionalHeaderValueByName("Authorization") {
+            case Some(authHeader) =>
+              val token = authHeader.replace("Bearer ", "")
+              import com.oms.common.security.JwtService
+              JwtService.validateToken(token) match {
+                case Some(jwtUser) =>
+                  entity(as[UpdateProfileRequest]) { request =>
+                    val response = userActor.ask(ref => UpdateCurrentUser(jwtUser.userId, request, ref))
+                    onSuccess(response) {
+                      case UserUpdated(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+                      case UserError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+                      case _ => complete(StatusCodes.InternalServerError, Map("error" -> "Failed to update profile"))
+                    }
+                  }
+                case None =>
+                  complete(StatusCodes.Unauthorized, Map("error" -> "Invalid or expired token"))
+              }
+            case None =>
+              complete(StatusCodes.Unauthorized, Map("error" -> "Missing authorization header"))
+          }
+        }
+      } ~
+      path("profile" / "password") {
+        put {
+          optionalHeaderValueByName("Authorization") {
+            case Some(authHeader) =>
+              val token = authHeader.replace("Bearer ", "")
+              import com.oms.common.security.JwtService
+              JwtService.validateToken(token) match {
+                case Some(jwtUser) =>
+                  entity(as[ChangePasswordRequest]) { request =>
+                    val response = userActor.ask(ref => ChangePassword(jwtUser.userId, request, ref))
+                    onSuccess(response) {
+                      case UserUpdated(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+                      case UserError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+                      case _ => complete(StatusCodes.InternalServerError, Map("error" -> "Failed to change password"))
+                    }
+                  }
+                case None =>
+                  complete(StatusCodes.Unauthorized, Map("error" -> "Invalid or expired token"))
+              }
+            case None =>
+              complete(StatusCodes.Unauthorized, Map("error" -> "Missing authorization header"))
           }
         }
       } ~

@@ -14,6 +14,8 @@ case class User(
 case class CreateUserRequest(username: String, email: String, password: String)
 case class LoginRequest(username: String, password: String)
 case class UpdateUserRequest(email: Option[String], role: Option[String])
+case class UpdateProfileRequest(email: Option[String], username: Option[String])
+case class ChangePasswordRequest(currentPassword: String, newPassword: String)
 case class UserResponse(id: Long, username: String, email: String, role: String, createdAt: LocalDateTime)
 
 object UserResponse {

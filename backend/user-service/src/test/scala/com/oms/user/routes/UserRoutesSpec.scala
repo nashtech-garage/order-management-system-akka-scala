@@ -37,6 +37,15 @@ class UserRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest w
       case cmd: GetUser =>
         cmd.replyTo ! response(cmd)
         akka.actor.typed.scaladsl.Behaviors.same
+      case cmd: GetCurrentUser =>
+        cmd.replyTo ! response(cmd)
+        akka.actor.typed.scaladsl.Behaviors.same
+      case cmd: UpdateCurrentUser =>
+        cmd.replyTo ! response(cmd)
+        akka.actor.typed.scaladsl.Behaviors.same
+      case cmd: ChangePassword =>
+        cmd.replyTo ! response(cmd)
+        akka.actor.typed.scaladsl.Behaviors.same
       case cmd: GetAllUsers =>
         cmd.replyTo ! response(cmd)
         akka.actor.typed.scaladsl.Behaviors.same
@@ -156,6 +165,193 @@ class UserRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest w
         
         Get("/users/999") ~> routes ~> check {
           status shouldBe StatusCodes.NotFound
+        }
+      }
+    }
+
+    "GET /users/profile" should {
+      "return current user profile with valid token" in {
+        val now = LocalDateTime.now()
+        val userResponse = UserResponse(1L, "currentuser", "current@example.com", "USER", now)
+        
+        // Generate a valid JWT token for testing
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UserFound(userResponse))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/profile").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          val response = responseAs[UserResponse]
+          response.username shouldBe "currentuser"
+          response.id shouldBe 1L
+          response.email shouldBe "current@example.com"
+        }
+      }
+
+      "return 401 when token is missing" in {
+        val actor = createTestActor(_ => UserFound(UserResponse(1L, "user", "email@e.com", "USER", LocalDateTime.now())))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/profile") ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("Missing authorization header")
+        }
+      }
+
+      "return 401 when token is invalid" in {
+        val actor = createTestActor(_ => UserFound(UserResponse(1L, "user", "email@e.com", "USER", LocalDateTime.now())))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/profile").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer invalid.token.here")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("Invalid or expired token")
+        }
+      }
+    }
+
+    "PUT /users/profile" should {
+      "update profile with valid token" in {
+        val now = LocalDateTime.now()
+        
+        // Generate a valid JWT token for testing
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UserUpdated("Profile updated successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateProfileRequest(Some("newemail@example.com"), None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("Profile updated successfully")
+        }
+      }
+
+      "return 400 when no fields provided" in {
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UserError("At least one field must be provided for update"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateProfileRequest(None, None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          responseAs[String] should include("At least one field must be provided")
+        }
+      }
+
+      "return 401 when token is missing" in {
+        val actor = createTestActor(_ => UserUpdated("Profile updated successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateProfileRequest(Some("newemail@example.com"), None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("Missing authorization header")
+        }
+      }
+
+      "return 401 when token is invalid" in {
+        val actor = createTestActor(_ => UserUpdated("Profile updated successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateProfileRequest(Some("newemail@example.com"), None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer invalid.token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("Invalid or expired token")
+        }
+      }
+    }
+
+    "PUT /users/profile/password" should {
+      "change password with valid token and correct current password" in {
+        // Generate a valid JWT token for testing
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UserUpdated("Password changed successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = ChangePasswordRequest("oldPassword123", "newPassword456")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile/password", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("Password changed successfully")
+        }
+      }
+
+      "return 400 when current password is incorrect" in {
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UserError("Current password is incorrect"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = ChangePasswordRequest("wrongPassword", "newPassword456")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile/password", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          responseAs[String] should include("Current password is incorrect")
+        }
+      }
+
+      "return 401 when token is missing" in {
+        val actor = createTestActor(_ => UserUpdated("Password changed successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = ChangePasswordRequest("oldPassword123", "newPassword456")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile/password", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("Missing authorization header")
+        }
+      }
+
+      "return 401 when token is invalid" in {
+        val actor = createTestActor(_ => UserUpdated("Password changed successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = ChangePasswordRequest("oldPassword123", "newPassword456")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile/password", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer invalid.token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("Invalid or expired token")
         }
       }
     }

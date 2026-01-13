@@ -1,10 +1,15 @@
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
-    REGISTER: '/auth/register',
+    LOGIN: '/users/login',
+    LOGOUT: '/users/logout',
+    REGISTER: '/users/register',
     REFRESH: '/auth/refresh',
-    VERIFY: '/auth/verify',
+    VERIFY: '/users/verify',
+  },
+  PROFILE: {
+    GET: '/users/profile',
+    UPDATE: '/users/profile',
+    CHANGE_PASSWORD: '/users/profile/password',
   },
   ORDERS: {
     BASE: '/orders',

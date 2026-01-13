@@ -66,6 +66,18 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/user-profile/user-profile').then((m) => m.UserProfileComponent),
+      },
+    ],
+  },
+  {
     path: '**',
     loadComponent: () => import('@features/not-found/not-found').then((m) => m.NotFound),
   },
