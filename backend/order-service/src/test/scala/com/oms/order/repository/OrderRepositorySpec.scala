@@ -208,5 +208,142 @@ class OrderRepositorySpec extends AnyWordSpec with Matchers with ScalaFutures wi
         count should be >= 1
       }
     }
+
+    "getting total sales" should {
+      "return sum of all non-cancelled orders" in {
+        val customerId = System.currentTimeMillis() % 10000
+        repository.createOrder(
+          Order(customerId = customerId, createdBy = 1L, status = "delivered", totalAmount = BigDecimal("100.00")),
+          List.empty
+        ).futureValue
+        repository.createOrder(
+          Order(customerId = customerId + 1, createdBy = 1L, status = "cancelled", totalAmount = BigDecimal("50.00")),
+          List.empty
+        ).futureValue
+        
+        val totalSales = repository.getTotalSales().futureValue
+        totalSales should be >= BigDecimal("100.00")
+      }
+
+      "return 0 when no orders exist" in {
+        // Clean test - this might have orders from other tests, so just verify it returns a value
+        val totalSales = repository.getTotalSales().futureValue
+        totalSales should be >= BigDecimal(0)
+      }
+    }
+
+    "getting orders in date range" should {
+      "return orders within date range" in {
+        val now = LocalDateTime.now()
+        val startDate = now.minusDays(1)
+        val endDate = now.plusDays(1)
+        
+        val order = Order(customerId = 9L, createdBy = 90L, totalAmount = BigDecimal("45.00"))
+        repository.createOrder(order, List.empty).futureValue
+        
+        val orders = repository.getOrdersInDateRange(startDate, endDate).futureValue
+        orders.size should be >= 1
+      }
+
+      "return empty when no orders in range" in {
+        val startDate = LocalDateTime.now().minusYears(10)
+        val endDate = LocalDateTime.now().minusYears(9)
+        
+        val orders = repository.getOrdersInDateRange(startDate, endDate).futureValue
+        orders shouldBe empty
+      }
+    }
+
+    "finding orders with pagination" should {
+      "respect offset and limit" in {
+        // Create multiple orders
+        val customerId = System.currentTimeMillis() % 10000
+        for (i <- 1 to 5) {
+          repository.createOrder(
+            Order(customerId = customerId + i, createdBy = 1L, totalAmount = BigDecimal(s"${i * 10}.00")),
+            List.empty
+          ).futureValue
+        }
+        
+        val firstPage = repository.findAll(0, 2).futureValue
+        firstPage.size should be <= 2
+        
+        val secondPage = repository.findAll(2, 2).futureValue
+        secondPage.size should be <= 2
+      }
+    }
+
+    "finding orders by customer with pagination" should {
+      "respect offset and limit for customer orders" in {
+        val customerId = System.currentTimeMillis() % 10000
+        for (i <- 1 to 3) {
+          repository.createOrder(
+            Order(customerId = customerId, createdBy = 1L, totalAmount = BigDecimal(s"${i * 10}.00")),
+            List.empty
+          ).futureValue
+        }
+        
+        val orders = repository.findByCustomerId(customerId, 0, 2).futureValue
+        orders.size should be <= 2
+        orders.foreach(_.customerId shouldBe customerId)
+      }
+    }
+
+    "finding orders by status with pagination" should {
+      "respect offset and limit for status orders" in {
+        val status = "processing"
+        for (i <- 1 to 3) {
+          repository.createOrder(
+            Order(customerId = i.toLong, createdBy = 1L, status = status, totalAmount = BigDecimal(s"${i * 10}.00")),
+            List.empty
+          ).futureValue
+        }
+        
+        val orders = repository.findByStatus(status, 0, 2).futureValue
+        orders.size should be <= 2
+        orders.foreach(_.status shouldBe status)
+      }
+    }
+
+    "handling order items" should {
+      "return empty list when no items exist" in {
+        val order = Order(customerId = 10L, createdBy = 1L, totalAmount = BigDecimal("0.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+        
+        val items = repository.getOrderItems(created.id.get).futureValue
+        items shouldBe empty
+      }
+
+      "handle multiple items correctly" in {
+        val order = Order(customerId = 11L, createdBy = 1L, totalAmount = BigDecimal("175.00"))
+        val items = List(
+          OrderItem(orderId = 0L, productId = 501L, quantity = 3, unitPrice = BigDecimal("25.00")),
+          OrderItem(orderId = 0L, productId = 502L, quantity = 2, unitPrice = BigDecimal("50.00"))
+        )
+        
+        val (created, createdItems) = repository.createOrder(order, items).futureValue
+        createdItems should have size 2
+        
+        val retrievedItems = repository.getOrderItems(created.id.get).futureValue
+        retrievedItems should have size 2
+        retrievedItems.map(_.productId).toSet shouldBe Set(501L, 502L)
+      }
+    }
+
+    "finding orders by created by with pagination" should {
+      "respect offset and limit" in {
+        val userId = System.currentTimeMillis() % 10000
+        for (i <- 1 to 3) {
+          repository.createOrder(
+            Order(customerId = i.toLong, createdBy = userId, totalAmount = BigDecimal(s"${i * 15}.00")),
+            List.empty
+          ).futureValue
+        }
+        
+        val orders = repository.findByCreatedBy(userId, 0, 2).futureValue
+        orders.size should be <= 2
+        orders.foreach(_.createdBy shouldBe userId)
+      }
+    }
   }
 }

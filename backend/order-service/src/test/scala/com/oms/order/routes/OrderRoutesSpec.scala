@@ -6,6 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.actor.typed.scaladsl.Behaviors
 import com.oms.order.actor.OrderActor
 import com.oms.order.actor.OrderActor._
 import com.oms.order.client.PaymentInfo
@@ -35,16 +36,16 @@ class OrderRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
 
   // Test actor that responds with predefined messages
   def createTestActor(response: Command => Response): ActorRef[Command] = {
-    testKit.spawn(akka.actor.typed.scaladsl.Behaviors.receiveMessage[Command] {
-      case cmd: CreateOrder => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: GetOrder => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: GetAllOrders => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: GetOrdersByCustomer => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: GetOrdersByStatus => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: UpdateOrderStatus => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: CancelOrder => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: PayOrder => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
-      case cmd: GetOrderStats => cmd.replyTo ! response(cmd); akka.actor.typed.scaladsl.Behaviors.same
+    testKit.spawn(Behaviors.receiveMessage[Command] {
+      case cmd: CreateOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: GetOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: GetAllOrders => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: GetOrdersByCustomer => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: GetOrdersByStatus => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: UpdateOrderStatus => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: CancelOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: PayOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: GetOrderStats => cmd.replyTo ! response(cmd); Behaviors.same
     })
   }
 
@@ -301,6 +302,244 @@ class OrderRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
         Get("/health") ~> routes ~> check {
           status shouldBe StatusCodes.OK
           responseAs[String] should include("healthy")
+        }
+      }
+    }
+
+    "Unexpected actor responses" should {
+      "return 500 for unexpected response in GET /orders" in {
+        // Return OrderCreated when OrdersFound is expected - triggers wildcard case
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in GET /orders with status filter" in {
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders?status=pending") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in GET /orders with customerId filter" in {
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders?customerId=10") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in POST /orders" in {
+        val now = LocalDateTime.now()
+        val orders = Seq(OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None))
+        
+        val actor = createTestActor(_ => OrdersFound(orders))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val request = CreateOrderRequest(10L, List(OrderItemRequest(101L, 2)))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        val token = createTestToken(20L)
+        
+        Post("/orders", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in GET /orders/stats" in {
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders/stats") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in GET /orders/:id" in {
+        val now = LocalDateTime.now()
+        val orders = Seq(OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None))
+        
+        val actor = createTestActor(_ => OrdersFound(orders))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders/1") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in PUT /orders/:id" in {
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateOrderStatusRequest("confirmed")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/orders/1", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in POST /orders/:id/cancel" in {
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Post("/orders/1/cancel") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "return 500 for unexpected response in POST /orders/:id/pay" in {
+        val now = LocalDateTime.now()
+        val order = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        
+        val actor = createTestActor(_ => OrderCreated(order))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val request = PayOrderRequest("credit_card")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/pay", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "Token parsing" should {
+      "reject invalid base64 token" in {
+        val actor = createTestActor(_ => OrderError("Not used"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val request = CreateOrderRequest(10L, List(OrderItemRequest(101L, 2)))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        // Invalid base64 token
+        Post("/orders", entity).addHeader(Authorization(OAuth2BearerToken("invalid-token!!!"))) ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+
+      "reject token with empty parts" in {
+        val actor = createTestActor(_ => OrderError("Not used"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val request = CreateOrderRequest(10L, List(OrderItemRequest(101L, 2)))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        // Token with empty string (no parts)
+        val emptyToken = Base64.getEncoder.encodeToString("".getBytes("UTF-8"))
+        
+        Post("/orders", entity).addHeader(Authorization(OAuth2BearerToken(emptyToken))) ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+
+      "reject token with non-numeric user ID" in {
+        val actor = createTestActor(_ => OrderError("Not used"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val request = CreateOrderRequest(10L, List(OrderItemRequest(101L, 2)))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        // Token with non-numeric userId
+        val tokenData = "notanumber:testuser:timestamp"
+        val invalidToken = Base64.getEncoder.encodeToString(tokenData.getBytes("UTF-8"))
+        
+        Post("/orders", entity).addHeader(Authorization(OAuth2BearerToken(invalidToken))) ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+    }
+
+    "Pagination" should {
+      "use default offset and limit" in {
+        val now = LocalDateTime.now()
+        val orders = Seq(
+          OrderResponse(1L, 10L, Some("John Doe"), 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        )
+        
+        val actor = createTestActor(_ => OrdersFound(orders))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+        }
+      }
+
+      "use custom offset and limit" in {
+        val now = LocalDateTime.now()
+        val orders = Seq(
+          OrderResponse(1L, 10L, Some("John Doe"), 20L, "pending", BigDecimal("50.00"), Seq.empty, now, None)
+        )
+        
+        val actor = createTestActor(_ => OrdersFound(orders))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders?offset=10&limit=5") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+        }
+      }
+
+      "handle OrderError for GET all orders" in {
+        val actor = createTestActor(_ => OrderError("Database error"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Database error")
+        }
+      }
+
+      "handle OrderError for GET orders by status" in {
+        val actor = createTestActor(_ => OrderError("Database error"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders?status=pending") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Database error")
+        }
+      }
+
+      "handle OrderError for GET orders by customerId" in {
+        val actor = createTestActor(_ => OrderError("Database error"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders?customerId=10") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Database error")
+        }
+      }
+
+      "handle OrderError for GET /orders/stats" in {
+        val actor = createTestActor(_ => OrderError("Stats unavailable"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Get("/orders/stats") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Stats unavailable")
         }
       }
     }
