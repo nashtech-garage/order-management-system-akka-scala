@@ -66,6 +66,45 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'products',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/products/product-list/product-list').then((m) => m.ProductList),
+      },
+      {
+        path: 'new',
+        loadComponent: () =>
+          import('@features/products/product-form/product-form').then((m) => m.ProductForm),
+      },
+      {
+        path: ':id/edit',
+        loadComponent: () =>
+          import('@features/products/product-form/product-form').then((m) => m.ProductForm),
+      },
+    ],
+  },
+  {
+    path: 'categories',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/categories/category-list/category-list').then((m) => m.CategoryList),
+      },
+      {
+        path: 'new',
+        loadComponent: () =>
+          import('@features/categories/category-form/category-form').then((m) => m.CategoryForm),
+      },
+    ],
+  },
+  {
     path: '**',
     loadComponent: () => import('@features/not-found/not-found').then((m) => m.NotFound),
   },

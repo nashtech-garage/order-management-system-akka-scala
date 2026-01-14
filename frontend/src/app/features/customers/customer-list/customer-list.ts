@@ -31,7 +31,7 @@ export class CustomerList implements OnInit {
 
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe(() => {
+      .subscribe((term) => {
         this.offset.set(0);
         this.loadCustomers();
       });

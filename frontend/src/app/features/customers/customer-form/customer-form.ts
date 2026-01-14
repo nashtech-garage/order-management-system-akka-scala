@@ -6,12 +6,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerService } from '@core/services/customer.service';
 import { Button } from '@shared/components/button/button';
 import {
+  Customer,
   Address,
   CreateCustomerRequest,
   UpdateCustomerRequest,
   CreateAddressRequest,
 } from '@shared/models/customer.model';
-import { switchMap, of, forkJoin } from 'rxjs';
+import { switchMap, of, forkJoin, catchError } from 'rxjs';
 
 @Component({
   selector: 'app-customer-form',
@@ -150,9 +151,9 @@ export class CustomerForm implements OnInit {
       .pipe(
         switchMap((customer) => {
           // If we have addresses, we need to add them sequentially
-          const addressRequests = (formValue.addresses || []).map((addr: CreateAddressRequest) => {
+          const addressRequests = formValue.addresses!.map((addr: any) => {
             const addressReq: CreateAddressRequest = { ...addr };
-            return this.customerService.addAddress(customer.id!, addressReq);
+            return this.customerService.addAddress(customer.id, addressReq);
           });
 
           return addressRequests.length > 0 ? forkJoin(addressRequests) : of(null);
@@ -163,7 +164,7 @@ export class CustomerForm implements OnInit {
           this.router.navigate(['/customers']);
           this.isSubmitting.set(false);
         },
-        error: (err: HttpErrorResponse) => {
+        error: (err) => {
           this.error.set(err.error?.error || 'Failed to create customer');
           this.isSubmitting.set(false);
         },

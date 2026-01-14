@@ -1,0 +1,113 @@
+<div class="product-form-container">
+  <header class="page-header">
+    <div class="title-section">
+      <h1>{{ isEditMode() ? 'Edit Product' : 'Add New Product' }}</h1>
+      <p class="subtitle">
+        {{
+          isEditMode()
+            ? 'Update product details and inventory'
+            : 'Create a new product in your
+                catalog'
+        }}
+      </p>
+    </div>
+    <app-button variant="secondary" (click)="cancel()">
+      <span>Cancel</span>
+    </app-button>
+  </header>
+
+  <div class="content-card">
+    @if (error()) {
+      <div class="error-banner">
+        <span>⚠️ {{ error() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
+      <div class="form-section">
+        <h3>Product Information</h3>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="name">Product Name</label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              [class.error]="isFieldInvalid('name')"
+            />
+            @if (isFieldInvalid('name')) {
+              <span class="error-msg">Product name is required</span>
+            }
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Description</label>
+            <textarea id="description" formControlName="description" rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="price">Price ($)</label>
+            <input
+              id="price"
+              type="number"
+              step="0.01"
+              formControlName="price"
+              [class.error]="isFieldInvalid('price')"
+            />
+            @if (isFieldInvalid('price')) {
+              <span class="error-msg">Valid price is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="stockQuantity">Stock Quantity</label>
+            <input
+              id="stockQuantity"
+              type="number"
+              formControlName="stockQuantity"
+              [class.error]="isFieldInvalid('stockQuantity')"
+            />
+            @if (isFieldInvalid('stockQuantity')) {
+              <span class="error-msg">Stock quantity is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="categoryId">Category</label>
+            <select id="categoryId" formControlName="categoryId">
+              <option [value]="null">-- Select Category --</option>
+              @for (category of categories(); track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="imageUrl">Image URL</label>
+            <input
+              id="imageUrl"
+              type="text"
+              formControlName="imageUrl"
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <app-button
+          type="submit"
+          variant="primary"
+          [disabled]="productForm.invalid || isSubmitting()"
+        >
+          @if (isSubmitting()) {
+            <span>Saving...</span>
+          } @else {
+            <span>{{ isEditMode() ? 'Update Product' : 'Create Product' }}</span>
+          }
+        </app-button>
+      </div>
+    </form>
+  </div>
+</div>

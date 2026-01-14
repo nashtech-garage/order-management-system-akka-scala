@@ -1,0 +1,59 @@
+<div class="category-form-container">
+  <header class="page-header">
+    <div class="title-section">
+      <h1>Add New Category</h1>
+      <p class="subtitle">Create a new category for organizing products</p>
+    </div>
+    <app-button variant="secondary" (click)="cancel()">
+      <span>Cancel</span>
+    </app-button>
+  </header>
+
+  <div class="content-card">
+    @if (error()) {
+      <div class="error-banner">
+        <span>⚠️ {{ error() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()">
+      <div class="form-section">
+        <h3>Category Information</h3>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="name">Category Name</label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              [class.error]="isFieldInvalid('name')"
+            />
+            @if (isFieldInvalid('name')) {
+              <span class="error-msg">Category name is required</span>
+            }
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Description</label>
+            <textarea id="description" formControlName="description" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <app-button
+          type="submit"
+          variant="primary"
+          [disabled]="categoryForm.invalid || isSubmitting()"
+        >
+          @if (isSubmitting()) {
+            <span>Saving...</span>
+          } @else {
+            <span>Create Category</span>
+          }
+        </app-button>
+      </div>
+    </form>
+  </div>
+</div>
