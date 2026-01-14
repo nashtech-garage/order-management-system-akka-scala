@@ -34,7 +34,7 @@ export class ProductList implements OnInit {
 
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe((term) => {
+      .subscribe(() => {
         this.offset.set(0);
         this.loadProducts();
       });

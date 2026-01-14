@@ -80,7 +80,7 @@ export class ProductForm implements OnInit {
         });
         this.isLoading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Failed to load product details');
         this.isLoading.set(false);
       },
@@ -110,7 +110,14 @@ export class ProductForm implements OnInit {
     }
   }
 
-  private createProduct(formValue: any) {
+  private createProduct(formValue: {
+    name: string;
+    description?: string;
+    price: number;
+    stockQuantity: number;
+    categoryId?: number;
+    imageUrl?: string;
+  }) {
     const request: CreateProductRequest = {
       name: formValue.name,
       description: formValue.description || undefined,
@@ -132,7 +139,14 @@ export class ProductForm implements OnInit {
     });
   }
 
-  private updateProduct(formValue: any) {
+  private updateProduct(formValue: {
+    name: string;
+    description?: string;
+    price: number;
+    stockQuantity: number;
+    categoryId?: number;
+    imageUrl?: string;
+  }) {
     const id = this.productId();
     if (!id) return;
 

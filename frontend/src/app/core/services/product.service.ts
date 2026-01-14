@@ -16,8 +16,8 @@ export class ProductService {
   private apiUrl = `${environment.apiUrl}/products`;
 
   getProducts(
-    offset: number = 0,
-    limit: number = 20,
+    offset = 0,
+    limit = 20,
     search?: string,
     categoryId?: number | null,
   ): Observable<ProductResponse[]> {
@@ -55,6 +55,8 @@ export class ProductService {
   }
 
   getCategories(): Observable<{ id: number; name: string; description?: string }[]> {
-    return this.http.get<{ id: number; name: string; description?: string }[]>(`${environment.apiUrl}/categories`);
+    return this.http.get<{ id: number; name: string; description?: string }[]>(
+      `${environment.apiUrl}/categories`,
+    );
   }
 }
