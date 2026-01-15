@@ -355,5 +355,304 @@ class UserRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest w
         }
       }
     }
+
+    "PUT /users/:id" should {
+      "update user successfully" in {
+        val actor = createTestActor(_ => UserUpdated("User 1 updated successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateUserRequest(Some("updated@example.com"), Some("ADMIN"))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/1", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("User 1 updated successfully")
+        }
+      }
+
+      "return 404 when user not found" in {
+        val actor = createTestActor(_ => UserError("User with id 999 not found"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateUserRequest(Some("updated@example.com"), None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/999", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.NotFound
+          responseAs[String] should include("User with id 999 not found")
+        }
+      }
+
+      "return 500 on unexpected error" in {
+        val actor = createTestActor(_ => UserCreated(UserResponse(1L, "u", "e@e.com", "USER", LocalDateTime.now())))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateUserRequest(Some("updated@example.com"), None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/1", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "DELETE /users/:id" should {
+      "delete user successfully" in {
+        val actor = createTestActor(_ => UserDeleted("User 1 deleted successfully"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Delete("/users/1") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("User 1 deleted successfully")
+        }
+      }
+
+      "return 404 when user not found" in {
+        val actor = createTestActor(_ => UserError("User with id 999 not found"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Delete("/users/999") ~> routes ~> check {
+          status shouldBe StatusCodes.NotFound
+          responseAs[String] should include("User with id 999 not found")
+        }
+      }
+
+      "return 500 on unexpected error" in {
+        val actor = createTestActor(_ => UserCreated(UserResponse(1L, "u", "e@e.com", "USER", LocalDateTime.now())))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Delete("/users/1") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "GET /users with pagination" should {
+      "return users with custom offset and limit" in {
+        val now = LocalDateTime.now()
+        val users = Seq(
+          UserResponse(1L, "u1", "u1@e.com", "USER", now),
+          UserResponse(2L, "u2", "u2@e.com", "USER", now)
+        )
+        
+        val actor = createTestActor(_ => UsersFound(users))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users?offset=10&limit=5") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          val response = responseAs[Seq[UserResponse]]
+          response should have size 2
+        }
+      }
+
+      "return 500 when actor returns error" in {
+        val actor = createTestActor(_ => UserError("Database connection failed"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Database connection failed")
+        }
+      }
+
+      "return 500 on unexpected response" in {
+        val actor = createTestActor(_ => UserCreated(UserResponse(1L, "u", "e@e.com", "USER", LocalDateTime.now())))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "GET /users/:id" should {
+      "return 500 on unexpected response" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/1") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "POST /users/register" should {
+      "return 500 on unexpected response" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = CreateUserRequest("newuser", "new@example.com", "password")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Post("/users/register", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "POST /users/login" should {
+      "return 500 on unexpected response" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = LoginRequest("user", "password")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Post("/users/login", entity) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "POST /users/logout" should {
+      "successfully logout with token" in {
+        val actor = createTestActor(_ => LogoutSuccess("Logout successful"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Post("/users/logout").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer some.token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("Logout successful")
+        }
+      }
+
+      "return 400 on error" in {
+        val actor = createTestActor(_ => UserError("Token already invalidated"))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Post("/users/logout").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer some.token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          responseAs[String] should include("Token already invalidated")
+        }
+      }
+
+      "return 500 on unexpected response" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Post("/users/logout").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer some.token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+    }
+
+    "GET /users/verify" should {
+      "return valid:true for valid token" in {
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "testuser", "test@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/verify").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("true")
+        }
+      }
+
+      "return valid:false for invalid token" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/verify").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", "Bearer invalid.token.here")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("false")
+          responseAs[String] should include("Invalid or expired token")
+        }
+      }
+
+      "return valid:false when no token provided" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/verify") ~> routes ~> check {
+          status shouldBe StatusCodes.Unauthorized
+          responseAs[String] should include("false")
+          responseAs[String] should include("Missing authorization header")
+        }
+      }
+    }
+
+    "GET /users/profile" should {
+      "return 500 on unexpected response" in {
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/users/profile").withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Failed to fetch user profile")
+        }
+      }
+    }
+
+    "PUT /users/profile" should {
+      "return 500 on unexpected response" in {
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = UpdateProfileRequest(Some("newemail@example.com"), None)
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Failed to update profile")
+        }
+      }
+    }
+
+    "PUT /users/profile/password" should {
+      "return 500 on unexpected response" in {
+        import com.oms.common.security.{JwtService, JwtUser}
+        val jwtUser = JwtUser(1L, "currentuser", "current@example.com", "USER")
+        val token = JwtService.generateToken(jwtUser)
+        
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        val request = ChangePasswordRequest("oldPassword123", "newPassword456")
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        
+        Put("/users/profile/password", entity).withHeaders(
+          akka.http.scaladsl.model.headers.RawHeader("Authorization", s"Bearer $token")
+        ) ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+          responseAs[String] should include("Failed to change password")
+        }
+      }
+    }
+
+    "GET /health" should {
+      "return OK status" in {
+        val actor = createTestActor(_ => UsersFound(Seq()))
+        val routes = new UserRoutes(actor)(testKit.system).routes
+        
+        Get("/health") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("status")
+        }
+      }
+    }
   }
 }
