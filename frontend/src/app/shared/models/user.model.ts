@@ -26,3 +26,21 @@ export interface RegisterRequest {
   email: string;
   password: string;
 }
+
+export interface UpdateProfileRequest {
+  email?: string;
+  username?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}

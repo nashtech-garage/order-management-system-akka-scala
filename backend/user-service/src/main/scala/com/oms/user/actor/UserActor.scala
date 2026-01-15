@@ -17,6 +17,9 @@ object UserActor {
   case class Login(request: LoginRequest, replyTo: ActorRef[Response]) extends Command
   case class Logout(token: String, replyTo: ActorRef[Response]) extends Command
   case class GetUser(id: Long, replyTo: ActorRef[Response]) extends Command
+  case class GetCurrentUser(userId: Long, replyTo: ActorRef[Response]) extends Command
+  case class UpdateCurrentUser(userId: Long, request: UpdateProfileRequest, replyTo: ActorRef[Response]) extends Command
+  case class ChangePassword(userId: Long, request: ChangePasswordRequest, replyTo: ActorRef[Response]) extends Command
   case class GetAllUsers(offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
   case class UpdateUser(id: Long, request: UpdateUserRequest, replyTo: ActorRef[Response]) extends Command
   case class DeleteUser(id: Long, replyTo: ActorRef[Response]) extends Command
@@ -82,6 +85,65 @@ object UserActor {
               null
             case Failure(ex) =>
               replyTo ! UserError(s"Failed to get user: ${ex.getMessage}")
+              null
+          }
+          Behaviors.same
+          
+        case GetCurrentUser(userId, replyTo) =>
+          context.pipeToSelf(repository.findById(userId)) {
+            case Success(Some(user)) =>
+              replyTo ! UserFound(UserResponse.fromUser(user))
+              null
+            case Success(None) =>
+              replyTo ! UserError(s"User profile not found")
+              null
+            case Failure(ex) =>
+              replyTo ! UserError(s"Failed to get user profile: ${ex.getMessage}")
+              null
+          }
+          Behaviors.same
+          
+        case UpdateCurrentUser(userId, request, replyTo) =>
+          // Validate that at least one field is provided
+          if (request.email.isEmpty && request.username.isEmpty) {
+            replyTo ! UserError("At least one field must be provided for update")
+            Behaviors.same
+          } else {
+            context.pipeToSelf(repository.updateProfile(userId, request.email, request.username)) {
+              case Success(count) if count > 0 =>
+                replyTo ! UserUpdated(s"Profile updated successfully")
+                null
+              case Success(_) =>
+                replyTo ! UserError(s"User profile not found")
+                null
+              case Failure(ex) =>
+                replyTo ! UserError(s"Failed to update profile: ${ex.getMessage}")
+                null
+            }
+            Behaviors.same
+          }
+          
+        case ChangePassword(userId, request, replyTo) =>
+          context.pipeToSelf(repository.findById(userId)) {
+            case Success(Some(user)) if verifyPassword(request.currentPassword, user.passwordHash) =>
+              val newPasswordHash = hashPassword(request.newPassword)
+              context.pipeToSelf(repository.updatePassword(userId, newPasswordHash)) {
+                case Success(count) if count > 0 =>
+                  replyTo ! UserUpdated("Password changed successfully")
+                  null
+                case Success(_) =>
+                  replyTo ! UserError("Failed to change password")
+                  null
+                case Failure(ex) =>
+                  replyTo ! UserError(s"Failed to change password: ${ex.getMessage}")
+                  null
+              }
+              null
+            case Success(_) =>
+              replyTo ! UserError("Current password is incorrect")
+              null
+            case Failure(ex) =>
+              replyTo ! UserError(s"Failed to change password: ${ex.getMessage}")
               null
           }
           Behaviors.same
