@@ -1,0 +1,229 @@
+<div class="user-profile-container">
+  <div class="profile-header">
+    <h1>User Profile</h1>
+    <p class="subtitle">Manage your account settings</p>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="alert alert-error">
+      <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        ></path>
+      </svg>
+      {{ error() }}
+    </div>
+  }
+
+  @if (success()) {
+    <div class="alert alert-success">
+      <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        ></path>
+      </svg>
+      {{ success() }}
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'profile'"
+      (click)="setActiveTab('profile')"
+    >
+      Profile Information
+    </button>
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'password'"
+      (click)="setActiveTab('password')"
+    >
+      Change Password
+    </button>
+  </div>
+
+  <!-- Profile Tab -->
+  @if (activeTab() === 'profile') {
+    <div class="tab-content">
+      <form [formGroup]="profileForm" (ngSubmit)="updateProfile()" class="profile-form">
+        <div class="form-section">
+          <h2>Account Information</h2>
+
+          @if (user()) {
+            <div class="info-row">
+              <span class="label">User ID:</span>
+              <span class="value">{{ user()?.id }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Role:</span>
+              <span class="value role-badge">{{ user()?.role }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Member Since:</span>
+              <span class="value">{{ user()?.createdAt | date: 'medium' }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="form-section">
+          <h2>Update Profile</h2>
+
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              formControlName="username"
+              class="form-control"
+              [class.invalid]="isFieldInvalid(profileForm, 'username')"
+              placeholder="Enter username"
+            />
+            @if (isFieldInvalid(profileForm, 'username')) {
+              <span class="error-message">{{ getFieldError(profileForm, 'username') }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              class="form-control"
+              [class.invalid]="isFieldInvalid(profileForm, 'email')"
+              placeholder="Enter email"
+            />
+            @if (isFieldInvalid(profileForm, 'email')) {
+              <span class="error-message">{{ getFieldError(profileForm, 'email') }}</span>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading() || profileForm.invalid"
+            >
+              @if (loading()) {
+                <span class="spinner-small"></span>
+              }
+              Update Profile
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="loadUserProfile()"
+              [disabled]="loading()"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- Password Tab -->
+  @if (activeTab() === 'password') {
+    <div class="tab-content">
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
+        <div class="form-section">
+          <h2>Change Password</h2>
+          <p class="form-description">
+            Your password must be at least 6 characters long. Make sure to use a strong password.
+          </p>
+
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input
+              type="password"
+              id="currentPassword"
+              formControlName="currentPassword"
+              class="form-control"
+              [class.invalid]="isFieldInvalid(passwordForm, 'currentPassword')"
+              placeholder="Enter current password"
+            />
+            @if (isFieldInvalid(passwordForm, 'currentPassword')) {
+              <span class="error-message">{{
+                getFieldError(passwordForm, 'currentPassword')
+              }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              formControlName="newPassword"
+              class="form-control"
+              [class.invalid]="isFieldInvalid(passwordForm, 'newPassword')"
+              placeholder="Enter new password"
+            />
+            @if (isFieldInvalid(passwordForm, 'newPassword')) {
+              <span class="error-message">{{ getFieldError(passwordForm, 'newPassword') }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              formControlName="confirmPassword"
+              class="form-control"
+              [class.invalid]="
+                isFieldInvalid(passwordForm, 'confirmPassword') || hasPasswordMismatch()
+              "
+              placeholder="Confirm new password"
+            />
+            @if (isFieldInvalid(passwordForm, 'confirmPassword')) {
+              <span class="error-message">{{
+                getFieldError(passwordForm, 'confirmPassword')
+              }}</span>
+            }
+            @if (hasPasswordMismatch()) {
+              <span class="error-message">Passwords do not match</span>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading() || passwordForm.invalid"
+            >
+              @if (loading()) {
+                <span class="spinner-small"></span>
+              }
+              Change Password
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="passwordForm.reset()"
+              [disabled]="loading()"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  }
+</div>

@@ -4,8 +4,9 @@ import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, Multipart, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.util.ByteString
 import com.oms.product.actor.ProductActor
 import com.oms.product.model._
 import org.scalatest.BeforeAndAfterAll
@@ -425,6 +426,153 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
         val routes = new ProductRoutes(actor).routes
 
         Get("/health") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+        }
+      }
+    }
+
+    "POST /products/:id/upload-image" should {
+      "upload an image successfully" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        val fileBytes = ByteString("fake image content")
+        val bodyPart = Multipart.FormData.BodyPart(
+          "image",
+          HttpEntity(fileBytes),
+          Map("filename" -> "test-image.jpg")
+        )
+        val formData = Multipart.FormData(bodyPart)
+
+        Post(s"/products/1/upload-image", formData) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          val response = responseAs[Map[String, String]]
+          response("message") should include("Image uploaded successfully")
+        }
+      }
+
+      "return 400 when upload fails" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        val fileBytes = ByteString("content")
+        val bodyPart = Multipart.FormData.BodyPart(
+          "image",
+          HttpEntity(fileBytes),
+          Map("filename" -> "test.jpg")
+        )
+        val formData = Multipart.FormData(bodyPart)
+
+        Post(s"/products/999/upload-image", formData) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+        }
+      }
+    }
+
+    "GET /uploads/products/:fileName" should {
+      "return 404 when image doesn't exist" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        Get("/uploads/products/nonexistent.jpg") ~> routes ~> check {
+          status shouldBe StatusCodes.NotFound
+        }
+      }
+    }
+
+    "Error handling" should {
+      "handle InternalServerError responses" in {
+        val errorActor = testKit.spawn(Behaviors.receiveMessage[ProductActor.Command] {
+          case ProductActor.GetAllProducts(_, _, replyTo) =>
+            replyTo ! ProductActor.ProductError("Database error")
+            Behaviors.same
+          case _ => Behaviors.same
+        })
+
+        val routes = new ProductRoutes(errorActor).routes
+
+        Get("/products") ~> routes ~> check {
+          status shouldBe StatusCodes.InternalServerError
+        }
+      }
+
+      "handle missing required parameters" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        Get("/products/1/stock/check") ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+
+      "handle search with empty query" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        Get("/products?search=") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          val response = responseAs[Seq[ProductResponse]]
+          response should have size 1
+        }
+      }
+
+      "handle category endpoint with pagination" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        Get("/products/category/1?offset=5&limit=5") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          val response = responseAs[Seq[ProductResponse]]
+          response should have size 1
+        }
+      }
+
+      "handle update with all None values" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        val request = UpdateProductRequest(None, None, None, None, None, None)
+
+        Put("/products/1", HttpEntity(ContentTypes.`application/json`, request.toJson.toString)) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+        }
+      }
+
+      "handle zero stock check" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        Get("/products/1/stock/check?quantity=0") ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          val response = responseAs[Map[String, Boolean]]
+          response("available") shouldBe true
+        }
+      }
+
+      "handle negative stock check" in {
+        val negativeStockActor = testKit.spawn(Behaviors.receiveMessage[ProductActor.Command] {
+          case ProductActor.CheckStock(id, quantity, replyTo) =>
+            if (quantity < 0) {
+              replyTo ! ProductActor.ProductError("Quantity cannot be negative")
+            } else {
+              replyTo ! ProductActor.StockAvailable(true)
+            }
+            Behaviors.same
+          case _ => Behaviors.same
+        })
+
+        val routes = new ProductRoutes(negativeStockActor).routes
+
+        Get("/products/1/stock/check?quantity=-5") ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+        }
+      }
+
+      "handle large offset values" in {
+        val actor = createTestActor()
+        val routes = new ProductRoutes(actor).routes
+
+        Get("/products?offset=1000000&limit=20") ~> routes ~> check {
           status shouldBe StatusCodes.OK
         }
       }

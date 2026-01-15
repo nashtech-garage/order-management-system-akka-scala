@@ -56,6 +56,21 @@ class UserRepository(db: Database)(implicit ec: ExecutionContext) {
     db.run(updates)
   }
   
+  def updateProfile(id: Long, email: Option[String], username: Option[String]): Future[Int] = {
+    val query = users.filter(_.id === id)
+    val updates = (email, username) match {
+      case (Some(e), Some(u)) => query.map(user => (user.email, user.username)).update((e, u))
+      case (Some(e), None) => query.map(_.email).update(e)
+      case (None, Some(u)) => query.map(_.username).update(u)
+      case _ => DBIO.successful(0)
+    }
+    db.run(updates)
+  }
+  
+  def updatePassword(id: Long, newPasswordHash: String): Future[Int] = {
+    db.run(users.filter(_.id === id).map(_.passwordHash).update(newPasswordHash))
+  }
+  
   def delete(id: Long): Future[Int] = {
     db.run(users.filter(_.id === id).delete)
   }
