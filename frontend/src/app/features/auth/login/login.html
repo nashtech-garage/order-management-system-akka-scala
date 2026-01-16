@@ -10,10 +10,10 @@
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
-        <label for="username">Username</label>
-        <input id="username" type="text" formControlName="username" />
-        @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
-          <span class="error">Username is required (min 3 characters)</span>
+        <label for="usernameOrEmail">Username or Email</label>
+        <input id="usernameOrEmail" type="text" formControlName="usernameOrEmail" />
+        @if (loginForm.get('usernameOrEmail')?.invalid && loginForm.get('usernameOrEmail')?.touched) {
+          <span class="error">Username or Email is required (min 3 characters)</span>
         }
       </div>
 
