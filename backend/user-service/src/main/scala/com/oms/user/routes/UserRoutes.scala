@@ -16,12 +16,17 @@ import spray.json._
 import scala.concurrent.duration._
 
 trait UserJsonFormats extends JsonSupport {
-  implicit val createUserRequestFormat: RootJsonFormat[CreateUserRequest] = jsonFormat3(CreateUserRequest)
+  implicit val createUserRequestFormat: RootJsonFormat[CreateUserRequest] = jsonFormat5(CreateUserRequest)
   implicit val loginRequestFormat: RootJsonFormat[LoginRequest] = jsonFormat2(LoginRequest)
-  implicit val updateUserRequestFormat: RootJsonFormat[UpdateUserRequest] = jsonFormat2(UpdateUserRequest)
-  implicit val updateProfileRequestFormat: RootJsonFormat[UpdateProfileRequest] = jsonFormat2(UpdateProfileRequest)
+  implicit val updateUserRequestFormat: RootJsonFormat[UpdateUserRequest] = jsonFormat4(UpdateUserRequest)
+  implicit val updateProfileRequestFormat: RootJsonFormat[UpdateProfileRequest] = jsonFormat3(UpdateProfileRequest)
   implicit val changePasswordRequestFormat: RootJsonFormat[ChangePasswordRequest] = jsonFormat2(ChangePasswordRequest)
-  implicit val userResponseFormat: RootJsonFormat[UserResponse] = jsonFormat5(UserResponse.apply)
+  implicit val accountStatusRequestFormat: RootJsonFormat[AccountStatusRequest] = jsonFormat2(AccountStatusRequest)
+  implicit val userSearchRequestFormat: RootJsonFormat[UserSearchRequest] = jsonFormat5(UserSearchRequest)
+  implicit val bulkUserActionRequestFormat: RootJsonFormat[BulkUserActionRequest] = jsonFormat3(BulkUserActionRequest)
+  implicit val userResponseFormat: RootJsonFormat[UserResponse] = jsonFormat9(UserResponse.apply)
+  implicit val userListResponseFormat: RootJsonFormat[UserListResponse] = jsonFormat4(UserListResponse)
+  implicit val userStatsResponseFormat: RootJsonFormat[UserStatsResponse] = jsonFormat3(UserStatsResponse)
 }
 
 class UserRoutes(userActor: ActorRef[UserActor.Command])(implicit system: ActorSystem[_]) 
@@ -164,6 +169,53 @@ class UserRoutes(userActor: ActorRef[UserActor.Command])(implicit system: ActorS
               }
             case None =>
               complete(StatusCodes.Unauthorized, Map("error" -> "Missing authorization header"))
+          }
+        }
+      } ~
+      path("search") {
+        post {
+          entity(as[UserSearchRequest]) { request =>
+            val response = userActor.ask(ref => SearchUsers(request, ref))
+            onSuccess(response) {
+              case UserListFound(result) => complete(StatusCodes.OK, result)
+              case UserError(msg) => complete(StatusCodes.InternalServerError, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
+          }
+        }
+      } ~
+      path("stats") {
+        get {
+          val response = userActor.ask(ref => GetUserStats(ref))
+          onSuccess(response) {
+            case UserStatsFound(stats) => complete(StatusCodes.OK, stats)
+            case UserError(msg) => complete(StatusCodes.InternalServerError, Map("error" -> msg))
+            case _ => complete(StatusCodes.InternalServerError)
+          }
+        }
+      } ~
+      path("bulk") {
+        post {
+          entity(as[BulkUserActionRequest]) { request =>
+            val response = userActor.ask(ref => BulkUserAction(request, ref))
+            onSuccess(response) {
+              case BulkActionCompleted(msg, affected) => 
+                complete(StatusCodes.OK, Map("message" -> msg, "affected" -> affected.toString))
+              case UserError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
+          }
+        }
+      } ~
+      path(LongNumber / "status") { id =>
+        put {
+          entity(as[AccountStatusRequest]) { request =>
+            val response = userActor.ask(ref => UpdateAccountStatus(id, request, ref))
+            onSuccess(response) {
+              case UserUpdated(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+              case UserError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
           }
         }
       } ~

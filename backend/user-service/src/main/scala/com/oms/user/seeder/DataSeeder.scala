@@ -28,35 +28,60 @@ class DataSeeder(userRepository: UserRepository)(implicit ec: ExecutionContext) 
         email = "admin@oms.com",
         passwordHash = hashPassword("admin123"),
         role = "admin",
-        createdAt = LocalDateTime.now()
+        status = "active",
+        phoneNumber = Some("+1234567890"),
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now()
       ),
       User(
         username = "john_doe",
         email = "john.doe@example.com",
         passwordHash = hashPassword("password123"),
         role = "user",
-        createdAt = LocalDateTime.now()
+        status = "active",
+        phoneNumber = Some("+1234567891"),
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now()
       ),
       User(
         username = "jane_smith",
         email = "jane.smith@example.com",
         passwordHash = hashPassword("password123"),
         role = "user",
-        createdAt = LocalDateTime.now()
+        status = "active",
+        phoneNumber = Some("+1234567892"),
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now()
       ),
       User(
         username = "manager",
         email = "manager@oms.com",
         passwordHash = hashPassword("manager123"),
         role = "admin",
-        createdAt = LocalDateTime.now()
+        status = "active",
+        phoneNumber = Some("+1234567893"),
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now()
       ),
       User(
         username = "test_user",
         email = "test@example.com",
         passwordHash = hashPassword("test123"),
         role = "user",
-        createdAt = LocalDateTime.now()
+        status = "active",
+        phoneNumber = Some("+1234567894"),
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now()
+      ),
+      User(
+        username = "locked_user",
+        email = "locked@example.com",
+        passwordHash = hashPassword("password123"),
+        role = "user",
+        status = "locked",
+        loginAttempts = 5,
+        createdAt = LocalDateTime.now(),
+        updatedAt = LocalDateTime.now()
       )
     )
     

@@ -1,0 +1,223 @@
+<div class="user-detail-container p-6 max-w-4xl mx-auto">
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="text-center py-12">
+      <div
+        class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+      ></div>
+      <p class="mt-4 text-gray-600">Loading user...</p>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
+      {{ error() }}
+      <button routerLink="/users" class="ml-4 text-red-600 underline hover:text-red-800">
+        Back to users
+      </button>
+    </div>
+  }
+
+  <!-- User Details -->
+  @if (!loading() && user()) {
+    <div>
+      <!-- Header -->
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <button routerLink="/users" class="text-gray-600 hover:text-gray-900">← Back</button>
+          </div>
+          <h1 class="text-3xl font-bold text-gray-900">{{ getFullName() }}</h1>
+          <p class="text-gray-600">&#64;{{ user()!.username }}</p>
+        </div>
+        <div class="flex gap-2">
+          @if (!editMode()) {
+            <button
+              (click)="toggleEditMode()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Edit
+            </button>
+          }
+          @if (editMode()) {
+            <button
+              (click)="saveChanges()"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Save
+            </button>
+            <button
+              (click)="toggleEditMode()"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+          }
+          <button
+            (click)="deleteUser()"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- User Info Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Basic Info -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-lg font-semibold mb-4">Basic Information</h2>
+
+          @if (!editMode()) {
+            <div class="space-y-3">
+              <div>
+                <span class="text-sm text-gray-600">Email</span>
+                <p class="text-gray-900">{{ user()!.email }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Phone Number</span>
+                <p class="text-gray-900">{{ user()!.phoneNumber || '-' }}</p>
+              </div>
+            </div>
+          }
+
+          @if (editMode()) {
+            <form [formGroup]="editForm" class="space-y-3">
+              <div>
+                <label for="editEmail" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Email *</label
+                >
+                <input
+                  id="editEmail"
+                  type="email"
+                  formControlName="email"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label for="editPhoneNumber" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Phone Number</label
+                >
+                <input
+                  id="editPhoneNumber"
+                  type="tel"
+                  formControlName="phoneNumber"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </form>
+          }
+        </div>
+
+        <!-- Role & Status -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-lg font-semibold mb-4">Role & Status</h2>
+
+          @if (!editMode()) {
+            <div class="space-y-4">
+              <div>
+                <span class="text-sm text-gray-600">Role</span>
+                <div class="mt-1">
+                  <span
+                    class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800"
+                  >
+                    {{ roleLabels[user()!.role] || user()!.role }}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Status</span>
+                <div class="mt-1 flex items-center gap-2">
+                  <span
+                    class="px-3 py-1 text-sm font-semibold rounded-full"
+                    [ngClass]="statusColors[user()!.status || 'active']"
+                  >
+                    {{ statusLabels[user()!.status || 'active'] }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Quick Status Actions -->
+              <div class="pt-4 border-t">
+                <span class="text-sm text-gray-600 mb-2 block">Quick Actions</span>
+                <div class="flex flex-wrap gap-2">
+                  @if (user()!.status !== 'active') {
+                    <button
+                      (click)="updateStatus('active')"
+                      class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm"
+                    >
+                      Activate
+                    </button>
+                  }
+                  @if (user()!.status === 'locked') {
+                    <button
+                      (click)="updateStatus('active')"
+                      class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                    >
+                      Unlock
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (editMode()) {
+            <form [formGroup]="editForm" class="space-y-3">
+              <div>
+                <label for="editRole" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Role *</label
+                >
+                <select
+                  id="editRole"
+                  formControlName="role"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div>
+                <label for="editStatus" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Status *</label
+                >
+                <select
+                  id="editStatus"
+                  formControlName="status"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="locked">Locked</option>
+                </select>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
+
+      <!-- Activity Info -->
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-lg font-semibold mb-4">Activity Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <span class="text-sm text-gray-600">User ID</span>
+            <p class="text-gray-900 font-mono">{{ user()!.id }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-gray-600">Created At</span>
+            <p class="text-gray-900">{{ formatDate(user()!.createdAt) }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-gray-600">Last Updated</span>
+            <p class="text-gray-900">{{ formatDate(user()!.updatedAt) }}</p>
+          </div>
+          <div class="md:col-span-3">
+            <span class="text-sm text-gray-600">Last Login</span>
+            <p class="text-gray-900">{{ formatDate(user()!.lastLogin) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
