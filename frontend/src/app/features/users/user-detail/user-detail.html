@@ -2,7 +2,9 @@
   <!-- Loading -->
   @if (loading()) {
     <div class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div
+        class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+      ></div>
       <p class="mt-4 text-gray-600">Loading user...</p>
     </div>
   }
@@ -11,10 +13,7 @@
   @if (error()) {
     <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
       {{ error() }}
-      <button
-        routerLink="/users"
-        class="ml-4 text-red-600 underline hover:text-red-800"
-      >
+      <button routerLink="/users" class="ml-4 text-red-600 underline hover:text-red-800">
         Back to users
       </button>
     </div>
@@ -27,12 +26,7 @@
       <div class="flex justify-between items-start mb-6">
         <div>
           <div class="flex items-center gap-2 mb-2">
-            <button
-              routerLink="/users"
-              class="text-gray-600 hover:text-gray-900"
-            >
-              ← Back
-            </button>
+            <button routerLink="/users" class="text-gray-600 hover:text-gray-900">← Back</button>
           </div>
           <h1 class="text-3xl font-bold text-gray-900">{{ getFullName() }}</h1>
           <p class="text-gray-600">&#64;{{ user()!.username }}</p>
@@ -74,15 +68,15 @@
         <!-- Basic Info -->
         <div class="bg-white p-6 rounded-lg shadow">
           <h2 class="text-lg font-semibold mb-4">Basic Information</h2>
-          
+
           @if (!editMode()) {
             <div class="space-y-3">
               <div>
-                <label class="text-sm text-gray-600">Email</label>
+                <span class="text-sm text-gray-600">Email</span>
                 <p class="text-gray-900">{{ user()!.email }}</p>
               </div>
               <div>
-                <label class="text-sm text-gray-600">Phone Number</label>
+                <span class="text-sm text-gray-600">Phone Number</span>
                 <p class="text-gray-900">{{ user()!.phoneNumber || '-' }}</p>
               </div>
             </div>
@@ -91,16 +85,22 @@
           @if (editMode()) {
             <form [formGroup]="editForm" class="space-y-3">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <label for="editEmail" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Email *</label
+                >
                 <input
+                  id="editEmail"
                   type="email"
                   formControlName="email"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <label for="editPhoneNumber" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Phone Number</label
+                >
                 <input
+                  id="editPhoneNumber"
                   type="tel"
                   formControlName="phoneNumber"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -113,19 +113,21 @@
         <!-- Role & Status -->
         <div class="bg-white p-6 rounded-lg shadow">
           <h2 class="text-lg font-semibold mb-4">Role & Status</h2>
-          
+
           @if (!editMode()) {
             <div class="space-y-4">
               <div>
-                <label class="text-sm text-gray-600">Role</label>
+                <span class="text-sm text-gray-600">Role</span>
                 <div class="mt-1">
-                  <span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
+                  <span
+                    class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800"
+                  >
                     {{ roleLabels[user()!.role] || user()!.role }}
                   </span>
                 </div>
               </div>
               <div>
-                <label class="text-sm text-gray-600">Status</label>
+                <span class="text-sm text-gray-600">Status</span>
                 <div class="mt-1 flex items-center gap-2">
                   <span
                     class="px-3 py-1 text-sm font-semibold rounded-full"
@@ -138,7 +140,7 @@
 
               <!-- Quick Status Actions -->
               <div class="pt-4 border-t">
-                <label class="text-sm text-gray-600 mb-2 block">Quick Actions</label>
+                <span class="text-sm text-gray-600 mb-2 block">Quick Actions</span>
                 <div class="flex flex-wrap gap-2">
                   @if (user()!.status !== 'active') {
                     <button
@@ -164,8 +166,11 @@
           @if (editMode()) {
             <form [formGroup]="editForm" class="space-y-3">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <label for="editRole" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Role *</label
+                >
                 <select
+                  id="editRole"
                   formControlName="role"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
@@ -174,8 +179,11 @@
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                <label for="editStatus" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Status *</label
+                >
                 <select
+                  id="editStatus"
                   formControlName="status"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
@@ -193,19 +201,19 @@
         <h2 class="text-lg font-semibold mb-4">Activity Information</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="text-sm text-gray-600">User ID</label>
+            <span class="text-sm text-gray-600">User ID</span>
             <p class="text-gray-900 font-mono">{{ user()!.id }}</p>
           </div>
           <div>
-            <label class="text-sm text-gray-600">Created At</label>
+            <span class="text-sm text-gray-600">Created At</span>
             <p class="text-gray-900">{{ formatDate(user()!.createdAt) }}</p>
           </div>
           <div>
-            <label class="text-sm text-gray-600">Last Updated</label>
+            <span class="text-sm text-gray-600">Last Updated</span>
             <p class="text-gray-900">{{ formatDate(user()!.updatedAt) }}</p>
           </div>
           <div class="md:col-span-3">
-            <label class="text-sm text-gray-600">Last Login</label>
+            <span class="text-sm text-gray-600">Last Login</span>
             <p class="text-gray-900">{{ formatDate(user()!.lastLogin) }}</p>
           </div>
         </div>

@@ -85,8 +85,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('@features/users/user-list/user-list').then((m) => m.UserList),
+        loadComponent: () => import('@features/users/user-list/user-list').then((m) => m.UserList),
       },
       {
         path: 'new',

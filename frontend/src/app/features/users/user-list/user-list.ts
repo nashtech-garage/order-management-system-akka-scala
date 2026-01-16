@@ -42,7 +42,7 @@ export class UserList implements OnInit {
   statusLabels = USER_STATUS_LABELS;
   statusColors = USER_STATUS_COLORS;
   roleLabels = USER_ROLE_LABELS;
-  
+
   // Expose Math to template
   Math = Math;
 
@@ -116,8 +116,8 @@ export class UserList implements OnInit {
 
   toggleAllUsers() {
     const currentUser = this.authService.currentUser();
-    const selectableUsers = this.users().filter(u => !currentUser || u.id !== currentUser.id);
-    
+    const selectableUsers = this.users().filter((u) => !currentUser || u.id !== currentUser.id);
+
     if (this.selectedUsers().length === selectableUsers.length) {
       this.selectedUsers.set([]);
     } else {

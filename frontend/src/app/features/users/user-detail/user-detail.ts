@@ -121,7 +121,7 @@ export class UserDetail implements OnInit {
     if (reason === null) return;
 
     const request: AccountStatusRequest = {
-      status: newStatus as any,
+      status: newStatus as 'active' | 'locked',
       reason: reason || undefined,
     };
 

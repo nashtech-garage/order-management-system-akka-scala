@@ -54,7 +54,7 @@ export class UserService {
   }
 
   // User Management (Admin)
-  getAllUsers(offset: number = 0, limit: number = 20): Observable<User[]> {
+  getAllUsers(offset = 0, limit = 20): Observable<User[]> {
     return this.apiService.get<User[]>(`/users?offset=${offset}&limit=${limit}`);
   }
 
@@ -75,10 +75,7 @@ export class UserService {
   }
 
   // Account Status Management
-  updateAccountStatus(
-    id: number,
-    request: AccountStatusRequest
-  ): Observable<{ message: string }> {
+  updateAccountStatus(id: number, request: AccountStatusRequest): Observable<{ message: string }> {
     return this.apiService.put<{ message: string }>(`/users/${id}/status`, request);
   }
 
