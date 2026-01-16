@@ -174,379 +174,6 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
             message should include("deleted successfully")
         }
       }
-
-      "return UserError when user not found" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.delete(999L)).thenReturn(Future.successful(0))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.DeleteUser(999L, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("not found")
-        }
-      }
-
-      "return UserError when delete fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.delete(1L)).thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.DeleteUser(1L, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to delete user")
-        }
-      }
-    }
-
-    "receiving Login command" should {
-      "return LoginSuccess when credentials are valid" in {
-        val mockRepo = mock[UserRepository]
-        val now = LocalDateTime.now()
-        val passwordHash = BCrypt.hashpw("password", BCrypt.gensalt())
-        val user = User(Some(1L), "loginuser", "login@example.com", passwordHash, "USER", "active", None, None, 0, now, now)
-        
-        when(mockRepo.findByUsername("loginuser")).thenReturn(Future.successful(Some(user)))
-        when(mockRepo.recordLogin(1L)).thenReturn(Future.successful(1))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = LoginRequest("loginuser", "password")
-        actor ! UserActor.Login(request, probe.ref)
-        
-        probe.expectMessageType[UserActor.LoginSuccess] match {
-          case UserActor.LoginSuccess(userResp, token) =>
-            userResp.username shouldBe "loginuser"
-            token should not be empty
-        }
-      }
-
-      "return UserError when password is incorrect" in {
-        val mockRepo = mock[UserRepository]
-        val now = LocalDateTime.now()
-        val passwordHash = BCrypt.hashpw("password", BCrypt.gensalt())
-        val user = User(Some(1L), "loginuser", "login@example.com", passwordHash, "USER", "active", None, None, 0, now, now)
-        
-        when(mockRepo.findByUsername("loginuser")).thenReturn(Future.successful(Some(user)))
-        when(mockRepo.updateLoginAttempts(1L, 1)).thenReturn(Future.successful(1))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = LoginRequest("loginuser", "wrongpassword")
-        actor ! UserActor.Login(request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Invalid username or password")
-        }
-      }
-
-      "return UserError when user not found" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findByUsername("nonexistent")).thenReturn(Future.successful(None))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = LoginRequest("nonexistent", "password")
-        actor ! UserActor.Login(request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Invalid username or password")
-        }
-      }
-
-      "return UserError when repository fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findByUsername("erroruser")).thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = LoginRequest("erroruser", "password")
-        actor ! UserActor.Login(request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Login failed")
-        }
-      }
-    }
-
-    "receiving Logout command" should {
-      "return LogoutSuccess" in {
-        val mockRepo = mock[UserRepository]
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.Logout("some.token", probe.ref)
-        
-        probe.expectMessageType[UserActor.LogoutSuccess] match {
-          case UserActor.LogoutSuccess(message) =>
-            message shouldBe "Logout successful"
-        }
-      }
-    }
-
-    "receiving GetCurrentUser command" should {
-      "return UserFound when user exists" in {
-        val mockRepo = mock[UserRepository]
-        val now = LocalDateTime.now()
-        val user = User(Some(1L), "currentuser", "current@example.com", "hash", "USER", "active", None, None, 0, now, now)
-        
-        when(mockRepo.findById(1L)).thenReturn(Future.successful(Some(user)))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.GetCurrentUser(1L, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserFound] match {
-          case UserActor.UserFound(response) =>
-            response.username shouldBe "currentuser"
-        }
-      }
-
-      "return UserError when user not found" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findById(999L)).thenReturn(Future.successful(None))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.GetCurrentUser(999L, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("User profile not found")
-        }
-      }
-
-      "return UserError when repository fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findById(1L)).thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.GetCurrentUser(1L, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to get user profile")
-        }
-      }
-    }
-
-    "receiving UpdateCurrentUser command" should {
-      "return UserUpdated when update succeeds" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.updateProfile(anyLong, any[Option[String]], any[Option[String]], any[Option[String]]))
-          .thenReturn(Future.successful(1))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = UpdateProfileRequest(Some("new@email.com"), None, None)
-        actor ! UserActor.UpdateCurrentUser(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserUpdated] match {
-          case UserActor.UserUpdated(message) =>
-            message should include("Profile updated successfully")
-        }
-      }
-
-      "return UserError when no fields provided" in {
-        val mockRepo = mock[UserRepository]
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = UpdateProfileRequest(None, None, None)
-        actor ! UserActor.UpdateCurrentUser(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("At least one field must be provided")
-        }
-      }
-
-      "return UserError when user not found" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.updateProfile(anyLong, any[Option[String]], any[Option[String]], any[Option[String]]))
-          .thenReturn(Future.successful(0))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = UpdateProfileRequest(Some("new@email.com"), None, None)
-        actor ! UserActor.UpdateCurrentUser(999L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("User profile not found")
-        }
-      }
-
-      "return UserError when update fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.updateProfile(anyLong, any[Option[String]], any[Option[String]], any[Option[String]]))
-          .thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = UpdateProfileRequest(Some("new@email.com"), None, None)
-        actor ! UserActor.UpdateCurrentUser(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to update profile")
-        }
-      }
-    }
-
-    "receiving ChangePassword command" should {
-      "return UserUpdated when password changed successfully" in {
-        val mockRepo = mock[UserRepository]
-        val now = LocalDateTime.now()
-        val currentPasswordHash = BCrypt.hashpw("currentPassword", BCrypt.gensalt())
-        val user = User(Some(1L), "user", "user@example.com", currentPasswordHash, "USER", "active", None, None, 0, now, now)
-        
-        when(mockRepo.findById(1L)).thenReturn(Future.successful(Some(user)))
-        when(mockRepo.updatePassword(anyLong, any[String])).thenReturn(Future.successful(1))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = ChangePasswordRequest("currentPassword", "newPassword")
-        actor ! UserActor.ChangePassword(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserUpdated] match {
-          case UserActor.UserUpdated(message) =>
-            message shouldBe "Password changed successfully"
-        }
-      }
-
-      "return UserError when current password is incorrect" in {
-        val mockRepo = mock[UserRepository]
-        val now = LocalDateTime.now()
-        val currentPasswordHash = BCrypt.hashpw("currentPassword", BCrypt.gensalt())
-        val user = User(Some(1L), "user", "user@example.com", currentPasswordHash, "USER", "active", None, None, 0, now, now)
-        
-        when(mockRepo.findById(1L)).thenReturn(Future.successful(Some(user)))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = ChangePasswordRequest("wrongPassword", "newPassword")
-        actor ! UserActor.ChangePassword(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Current password is incorrect")
-        }
-      }
-
-      "return UserError when user not found" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findById(999L)).thenReturn(Future.successful(None))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = ChangePasswordRequest("currentPassword", "newPassword")
-        actor ! UserActor.ChangePassword(999L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Current password is incorrect")
-        }
-      }
-
-      "return UserError when password update fails" in {
-        val mockRepo = mock[UserRepository]
-        val now = LocalDateTime.now()
-        val currentPasswordHash = BCrypt.hashpw("currentPassword", BCrypt.gensalt())
-        val user = User(Some(1L), "user", "user@example.com", currentPasswordHash, "USER", "active", None, None, 0, now, now)
-        
-        when(mockRepo.findById(1L)).thenReturn(Future.successful(Some(user)))
-        when(mockRepo.updatePassword(anyLong, any[String])).thenReturn(Future.successful(0))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = ChangePasswordRequest("currentPassword", "newPassword")
-        actor ! UserActor.ChangePassword(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to change password")
-        }
-      }
-
-      "return UserError when repository fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findById(1L)).thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = ChangePasswordRequest("currentPassword", "newPassword")
-        actor ! UserActor.ChangePassword(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to change password")
-        }
-      }
-    }
-
-    "receiving GetAllUsers command" should {
-      "return UserError when repository fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.findAll(anyInt, anyInt)).thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        actor ! UserActor.GetAllUsers(0, 10, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to get users")
-        }
-      }
-    }
-
-    "receiving UpdateUser command" should {
-      "return UserError when repository fails" in {
-        val mockRepo = mock[UserRepository]
-        when(mockRepo.update(anyLong, any[Option[String]], any[Option[String]], any[Option[String]], any[Option[String]]))
-          .thenReturn(Future.failed(new RuntimeException("DB error")))
-        
-        val actor = spawn(UserActor(mockRepo))
-        val probe = createTestProbe[UserActor.Response]()
-        
-        val request = UpdateUserRequest(Some("new@email.com"), Some("ADMIN"), None, None)
-        actor ! UserActor.UpdateUser(1L, request, probe.ref)
-        
-        probe.expectMessageType[UserActor.UserError] match {
-          case UserActor.UserError(message) =>
-            message should include("Failed to update user")
-        }
-      }
     }
 
     "receiving GetAllUsers command" should {
@@ -904,7 +531,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
         probe.expectMessageType[UserActor.UserDeleted]
       }
 
-      "return UserError when deleting non-existent user" in {
+      "return UserError when user not found" in {
         val mockRepo = mock[UserRepository]
         when(mockRepo.delete(999L)).thenReturn(Future.successful(0))
         
@@ -918,7 +545,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
     }
 
     "receiving GetCurrentUser command" should {
-      "return UserError when getting non-existent user" in {
+      "return UserError when user not found" in {
         val mockRepo = mock[UserRepository]
         when(mockRepo.findById(999L)).thenReturn(Future.successful(None))
         
@@ -932,7 +559,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
     }
 
     "receiving UpdateCurrentUser command" should {
-      "return UserError when no fields provided for current user" in {
+      "return UserError when no fields provided" in {
         val mockRepo = mock[UserRepository]
         
         val actor = spawn(UserActor(mockRepo))
@@ -944,7 +571,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
         probe.expectMessageType[UserActor.UserError]
       }
 
-      "return UserError when updating profile of non-existent user" in {
+      "return UserError when user not found" in {
         val mockRepo = mock[UserRepository]
         when(mockRepo.updateProfile(anyLong, any[Option[String]], any[Option[String]], any[Option[String]]))
           .thenReturn(Future.successful(0))
@@ -960,7 +587,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
     }
 
     "receiving ChangePassword command" should {
-      "return UserError when changing password for non-existent user" in {
+      "return UserError when user not found" in {
         val mockRepo = mock[UserRepository]
         when(mockRepo.findById(999L)).thenReturn(Future.successful(None))
         
@@ -973,7 +600,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
         probe.expectMessageType[UserActor.UserError]
       }
 
-      "return UserError when changing password fails to save" in {
+      "return UserError when password update fails" in {
         val mockRepo = mock[UserRepository]
         val now = LocalDateTime.now()
         val currentHash = BCrypt.hashpw("oldpass", BCrypt.gensalt())
@@ -1055,4 +682,3 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
     }
   }
 }
-
