@@ -53,21 +53,23 @@ class UserResponseSpec extends AnyFlatSpec with Matchers {
 
   "LoginRequest" should "create a valid request" in {
     val request = LoginRequest(
-      username = "loginuser",
+      usernameOrEmail = "loginuser",
       password = "loginpass"
     )
 
-    request.username shouldBe "loginuser"
+    request.usernameOrEmail shouldBe "loginuser"
     request.password shouldBe "loginpass"
   }
 
   "UpdateUserRequest" should "create a valid request" in {
     val request = UpdateUserRequest(
       email = Some("updated@example.com"),
-      role = Some("ADMIN")
+      role = Some("admin"),
+      status = None,
+      phoneNumber = None
     )
 
     request.email shouldBe Some("updated@example.com")
-    request.role shouldBe Some("ADMIN")
+    request.role shouldBe Some("admin")
   }
 }

@@ -1,0 +1,294 @@
+<div class="user-management-container p-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
+    <p class="text-gray-600">Manage user accounts, roles, and permissions</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  @if (stats()) {
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-lg shadow">
+        <div class="text-sm text-gray-600">Total Users</div>
+        <div class="text-2xl font-bold text-gray-900">{{ stats()!.totalUsers }}</div>
+      </div>
+      <div class="bg-green-50 p-4 rounded-lg shadow">
+        <div class="text-sm text-green-600">Active</div>
+        <div class="text-2xl font-bold text-green-700">{{ stats()!.activeUsers }}</div>
+      </div>
+      <div class="bg-red-50 p-4 rounded-lg shadow">
+        <div class="text-sm text-red-600">Locked</div>
+        <div class="text-2xl font-bold text-red-700">{{ stats()!.lockedUsers }}</div>
+      </div>
+    </div>
+  }
+
+  <!-- Actions and Filters -->
+  <div class="bg-white p-4 rounded-lg shadow mb-6">
+    <div class="flex flex-wrap gap-4 items-center">
+      <!-- Search -->
+      <div class="flex-1 min-w-[250px]">
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          (keyup.enter)="onSearch()"
+          placeholder="Search by name, email, username..."
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      <!-- Role Filter -->
+      <select
+        [value]="filterRole()"
+        (change)="filterRole.set($any($event.target).value); onFilterChange()"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">All Roles</option>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <!-- Status Filter -->
+      <select
+        [value]="filterStatus()"
+        (change)="filterStatus.set($any($event.target).value); onFilterChange()"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="locked">Locked</option>
+      </select>
+
+      <!-- Search Button -->
+      <button
+        (click)="onSearch()"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Search
+      </button>
+
+      <!-- Clear Filters -->
+      <button
+        (click)="clearFilters()"
+        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+      >
+        Clear
+      </button>
+
+      <!-- Add User -->
+      <a
+        routerLink="/users/new"
+        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+      >
+        + Add User
+      </a>
+    </div>
+
+    <!-- Bulk Actions -->
+    @if (selectedUsers().length > 0) {
+      <div class="mt-4 flex gap-2 items-center">
+        <span class="text-sm text-gray-600">{{ selectedUsers().length }} selected:</span>
+        <button
+          (click)="bulkActivate()"
+          class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm"
+        >
+          Activate
+        </button>
+        <button
+          (click)="bulkDelete()"
+          class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
+        >
+          Delete
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Error Message -->
+  @if (error()) {
+    <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
+      {{ error() }}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <p class="mt-4 text-gray-600">Loading users...</p>
+    </div>
+  }
+
+  <!-- Users Table -->
+  @if (!loading() && users().length > 0) {
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left">
+              <input
+                type="checkbox"
+                [checked]="selectedUsers().length === users().length"
+                (change)="toggleAllUsers()"
+                class="rounded border-gray-300"
+              />
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              User
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Email
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Role
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Last Login
+            </th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          @for (user of users(); track user.id) {
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <input
+                  type="checkbox"
+                  [checked]="selectedUsers().includes(user.id)"
+                  (change)="toggleUserSelection(user.id)"
+                  [disabled]="isCurrentUser(user)"
+                  class="rounded border-gray-300"
+                  [class.opacity-50]="isCurrentUser(user)"
+                  [class.cursor-not-allowed]="isCurrentUser(user)"
+                />
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 font-semibold">
+                      {{ user.username.charAt(0).toUpperCase() }}
+                    </span>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">{{ user.username }}</div>
+                    <div class="text-sm text-gray-500">{{ getFullName(user) }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-900">{{ user.email }}</td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ roleLabels[user.role] || user.role }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  class="px-2 py-1 text-xs font-semibold rounded-full"
+                  [ngClass]="statusColors[user.status || 'active']"
+                >
+                  {{ statusLabels[user.status || 'active'] }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(user.lastLogin) }}</td>
+              <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
+                <a
+                  [routerLink]="['/users', user.id]"
+                  class="text-blue-600 hover:text-blue-900"
+                >
+                  View
+                </a>
+                <a
+                  [routerLink]="['/users', user.id, 'edit']"
+                  class="text-indigo-600 hover:text-indigo-900"
+                >
+                  Edit
+                </a>
+                <button
+                  (click)="deleteUser(user)"
+                  [disabled]="isCurrentUser(user)"
+                  [class.opacity-50]="isCurrentUser(user)"
+                  [class.cursor-not-allowed]="isCurrentUser(user)"
+                  class="text-red-600 hover:text-red-900 disabled:hover:text-red-600"
+                  [title]="isCurrentUser(user) ? 'Cannot delete your own account' : 'Delete user'"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4 rounded-lg shadow">
+      <div class="flex-1 flex justify-between sm:hidden">
+        <button
+          (click)="previousPage()"
+          [disabled]="currentPage() === 1"
+          class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage() >= totalPages"
+          class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+      <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm text-gray-700">
+            Showing
+            <span class="font-medium">{{ (currentPage() - 1) * pageSize() + 1 }}</span>
+            to
+            <span class="font-medium">{{ Math.min(currentPage() * pageSize(), totalUsers()) }}</span>
+            of
+            <span class="font-medium">{{ totalUsers() }}</span>
+            results
+          </p>
+        </div>
+        <div>
+          <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            <button
+              (click)="previousPage()"
+              [disabled]="currentPage() === 1"
+              class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+              Page {{ currentPage() }} of {{ totalPages }}
+            </span>
+            <button
+              (click)="nextPage()"
+              [disabled]="currentPage() >= totalPages"
+              class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- No Results -->
+  @if (!loading() && users().length === 0) {
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+      <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+    </div>
+  }
+</div>
