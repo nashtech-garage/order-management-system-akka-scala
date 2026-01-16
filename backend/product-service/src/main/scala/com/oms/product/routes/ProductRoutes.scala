@@ -61,17 +61,17 @@ class ProductRoutes(productActor: ActorRef[ProductActor.Command])(implicit syste
     pathPrefix("products") {
       pathEnd {
         get {
-          parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(20), "search".?) { (offset, limit, search) =>
+          parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(20), "search".?, "categoryId".as[Long].?) { (offset, limit, search, categoryId) =>
             search match {
               case Some(query) =>
-                val response = productActor.ask(ref => SearchProducts(query, offset, limit, ref))
+                val response = productActor.ask(ref => SearchProducts(query, offset, limit, categoryId, ref))
                 onSuccess(response) {
                   case ProductsFound(products) => complete(StatusCodes.OK, products)
                   case ProductError(msg) => complete(StatusCodes.InternalServerError, Map("error" -> msg))
                   case _ => complete(StatusCodes.InternalServerError)
                 }
               case None =>
-                val response = productActor.ask(ref => GetAllProducts(offset, limit, ref))
+                val response = productActor.ask(ref => GetAllProducts(offset, limit, categoryId, ref))
                 onSuccess(response) {
                   case ProductsFound(products) => complete(StatusCodes.OK, products)
                   case ProductError(msg) => complete(StatusCodes.InternalServerError, Map("error" -> msg))

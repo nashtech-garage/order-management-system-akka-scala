@@ -86,12 +86,21 @@
 
     <!-- Empty State -->
     @if (!isLoading() && customers().length === 0 && !error()) {
+      <<<<<<< HEAD
       <div class="empty-state">
         <div class="empty-icon">👥</div>
         <h3>No customers found</h3>
         <p>Get started by adding your first customer</p>
         <app-button variant="primary" (click)="navigateToCreate()"> Add Customer </app-button>
       </div>
+      =======
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <h3>No customers found</h3>
+        <p>Get started by adding your first customer</p>
+        <app-button variant="primary" (click)="navigateToCreate()"> Add Customer </app-button>
+      </div>
+      >>>>>>> 92d1ad2 (implement product @ category services)
     }
   </div>
 </div>

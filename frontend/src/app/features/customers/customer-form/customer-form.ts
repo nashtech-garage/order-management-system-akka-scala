@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerService } from '@core/services/customer.service';
@@ -150,9 +150,9 @@ export class CustomerForm implements OnInit {
       .pipe(
         switchMap((customer) => {
           // If we have addresses, we need to add them sequentially
-          const addressRequests = (formValue.addresses || []).map((addr: CreateAddressRequest) => {
+          const addressRequests = formValue.addresses!.map((addr: CreateAddressRequest) => {
             const addressReq: CreateAddressRequest = { ...addr };
-            return this.customerService.addAddress(customer.id!, addressReq);
+            return this.customerService.addAddress(customer.id, addressReq);
           });
 
           return addressRequests.length > 0 ? forkJoin(addressRequests) : of(null);
@@ -163,7 +163,7 @@ export class CustomerForm implements OnInit {
           this.router.navigate(['/customers']);
           this.isSubmitting.set(false);
         },
-        error: (err: HttpErrorResponse) => {
+        error: (err) => {
           this.error.set(err.error?.error || 'Failed to create customer');
           this.isSubmitting.set(false);
         },

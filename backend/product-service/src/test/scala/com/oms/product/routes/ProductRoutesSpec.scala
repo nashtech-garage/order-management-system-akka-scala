@@ -68,7 +68,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
         }
         Behaviors.same
 
-      case ProductActor.GetAllProducts(offset, limit, replyTo) =>
+      case ProductActor.GetAllProducts(offset, limit, categoryFilter, replyTo) =>
         val products = Seq(
           ProductResponse.fromProduct(testProduct),
           ProductResponse.fromProduct(testProduct.copy(id = Some(2L), name = "Product 2"))
@@ -76,7 +76,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
         replyTo ! ProductActor.ProductsFound(products)
         Behaviors.same
 
-      case ProductActor.SearchProducts(query, offset, limit, replyTo) =>
+      case ProductActor.SearchProducts(query, offset, limit, categoryFilter, replyTo) =>
         val products = Seq(ProductResponse.fromProduct(testProduct))
         replyTo ! ProductActor.ProductsFound(products)
         Behaviors.same

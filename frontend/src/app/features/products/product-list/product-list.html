@@ -1,0 +1,107 @@
+<div class="product-list-container">
+  <header class="page-header">
+    <div class="title-section">
+      <h1>Product Management</h1>
+      <p class="subtitle">Manage your product catalog and inventory</p>
+    </div>
+    <app-button variant="primary" (click)="navigateToCreate()">
+      <span>+ Add Product</span>
+    </app-button>
+  </header>
+
+  <div class="content-card">
+    <!-- Search and Filter -->
+    <div class="actions-bar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search products..." [formControl]="searchControl" />
+      </div>
+      <!-- <div class="filter-box">
+        <select [formControl]="categoryFilter" class="category-filter">
+          <option [value]="null">All Categories</option>
+          @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </div> -->
+    </div>
+
+    @if (error()) {
+      <div class="error-banner">
+        <span>⚠️ {{ error() }}</span>
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading products...</p>
+      </div>
+    }
+
+    <!-- Table -->
+    @if (!isLoading() && products().length > 0) {
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Category</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (product of products(); track product.id) {
+              <tr>
+                <td>#{{ product.id }}</td>
+                <td class="font-medium">{{ product.name }}</td>
+                <td>{{ product.description || '-' }}</td>
+                <td>${{ product.price }}</td>
+                <td>{{ product.stockQuantity }}</td>
+                <td>{{ product.categoryName || '-' }}</td>
+                <td class="actions-cell">
+                  <button class="icon-btn edit" (click)="navigateToEdit(product.id)" title="Edit">
+                    ✏️
+                  </button>
+                  <button
+                    class="icon-btn delete"
+                    (click)="deleteProduct(product.id)"
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn" [disabled]="offset() === 0" (click)="changePage(-1)">
+          Previous
+        </button>
+        <span class="page-info"> Page {{ currentPage }} </span>
+        <button class="page-btn" [disabled]="products().length < limit()" (click)="changePage(1)">
+          Next
+        </button>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading() && products().length === 0 && !error()) {
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>No products found</h3>
+        <p>Get started by adding your first product</p>
+        <app-button variant="primary" (click)="navigateToCreate()"> Add Product </app-button>
+      </div>
+    }
+  </div>
+</div>

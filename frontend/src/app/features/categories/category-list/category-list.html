@@ -1,0 +1,71 @@
+<div class="category-list-container">
+  <header class="page-header">
+    <div class="title-section">
+      <h1>Category Management</h1>
+      <p class="subtitle">Manage product categories for better organization</p>
+    </div>
+    <app-button variant="primary" (click)="navigateToCreate()">
+      <span>+ Add Category</span>
+    </app-button>
+  </header>
+
+  <div class="content-card">
+    @if (error()) {
+      <div class="error-banner">
+        <span>⚠️ {{ error() }}</span>
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading categories...</p>
+      </div>
+    }
+
+    <!-- Table -->
+    @if (!isLoading() && categories().length > 0) {
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (category of categories(); track category.id) {
+              <tr>
+                <td>#{{ category.id }}</td>
+                <td class="font-medium">{{ category.name }}</td>
+                <td>{{ category.description || '-' }}</td>
+                <td class="actions-cell">
+                  <button
+                    class="icon-btn delete"
+                    (click)="deleteCategory(category.id!)"
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading() && categories().length === 0 && !error()) {
+      <div class="empty-state">
+        <div class="empty-icon">🏷️</div>
+        <h3>No categories found</h3>
+        <p>Get started by adding your first category</p>
+        <app-button variant="primary" (click)="navigateToCreate()"> Add Category </app-button>
+      </div>
+    }
+  </div>
+</div>
