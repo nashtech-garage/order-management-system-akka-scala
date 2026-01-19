@@ -71,12 +71,38 @@ class ProductRepository(db: Database)(implicit ec: ExecutionContext) {
     db.run(products.drop(offset).take(limit).result)
   }
   
+  def findAllWithCategories(offset: Int = 0, limit: Int = 20, categoryFilter: Option[Long] = None): Future[Seq[(Product, Option[String])]] = {
+    val baseQuery = for {
+      (p, c) <- products joinLeft categories on (_.categoryId === _.id)
+    } yield (p, c.map(_.name))
+    
+    val filteredQuery = categoryFilter match {
+      case Some(catId) => baseQuery.filter(_._1.categoryId === catId)
+      case None => baseQuery
+    }
+    
+    db.run(filteredQuery.drop(offset).take(limit).result)
+  }
+  
   def findByCategory(categoryId: Long, offset: Int = 0, limit: Int = 20): Future[Seq[Product]] = {
     db.run(products.filter(_.categoryId === categoryId).drop(offset).take(limit).result)
   }
   
   def searchByName(query: String, offset: Int = 0, limit: Int = 20): Future[Seq[Product]] = {
     db.run(products.filter(_.name.toLowerCase like s"%${query.toLowerCase}%").drop(offset).take(limit).result)
+  }
+  
+  def searchByNameWithCategories(query: String, offset: Int = 0, limit: Int = 20, categoryFilter: Option[Long] = None): Future[Seq[(Product, Option[String])]] = {
+    val baseQuery = for {
+      (p, c) <- products.filter(_.name.toLowerCase like s"%${query.toLowerCase}%") joinLeft categories on (_.categoryId === _.id)
+    } yield (p, c.map(_.name))
+    
+    val filteredQuery = categoryFilter match {
+      case Some(catId) => baseQuery.filter(_._1.categoryId === catId)
+      case None => baseQuery
+    }
+    
+    db.run(filteredQuery.drop(offset).take(limit).result)
   }
   
   def updateProduct(id: Long, name: Option[String], description: Option[String], 

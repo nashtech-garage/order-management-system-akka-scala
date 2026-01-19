@@ -131,13 +131,16 @@ class ProductActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
     "receiving GetAllProducts command" should {
       "return ProductsFound with list of products" in {
         val mockRepository = mock[ProductRepository]
-        val products = Seq(testProduct, testProduct.copy(id = Some(2L), name = "Product 2"))
-        when(mockRepository.findAll(0, 20)).thenReturn(Future.successful(products))
+        val productsWithCats = Seq(
+          (testProduct, None),
+          (testProduct.copy(id = Some(2L), name = "Product 2"), None)
+        )
+        when(mockRepository.findAllWithCategories(0, 20, None)).thenReturn(Future.successful(productsWithCats))
 
         val actor = spawn(ProductActor(mockRepository))
         val probe = createTestProbe[ProductActor.Response]()
 
-        actor ! ProductActor.GetAllProducts(0, 20, probe.ref)
+        actor ! ProductActor.GetAllProducts(0, 20, None, probe.ref)
 
         val response = probe.receiveMessage()
         response shouldBe a[ProductActor.ProductsFound]
@@ -147,12 +150,12 @@ class ProductActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
 
       "return ProductError on failure" in {
         val mockRepository = mock[ProductRepository]
-        when(mockRepository.findAll(0, 20)).thenReturn(Future.failed(new Exception("Database error")))
+        when(mockRepository.findAllWithCategories(0, 20, None)).thenReturn(Future.failed(new Exception("Database error")))
 
         val actor = spawn(ProductActor(mockRepository))
         val probe = createTestProbe[ProductActor.Response]()
 
-        actor ! ProductActor.GetAllProducts(0, 20, probe.ref)
+        actor ! ProductActor.GetAllProducts(0, 20, None, probe.ref)
 
         val response = probe.receiveMessage()
         response shouldBe a[ProductActor.ProductError]
@@ -162,13 +165,13 @@ class ProductActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
     "receiving SearchProducts command" should {
       "return ProductsFound with filtered products" in {
         val mockRepository = mock[ProductRepository]
-        val products = Seq(testProduct)
-        when(mockRepository.searchByName("Test", 0, 20)).thenReturn(Future.successful(products))
+        val productsWithCats = Seq((testProduct, None))
+        when(mockRepository.searchByNameWithCategories("Test", 0, 20, None)).thenReturn(Future.successful(productsWithCats))
 
         val actor = spawn(ProductActor(mockRepository))
         val probe = createTestProbe[ProductActor.Response]()
 
-        actor ! ProductActor.SearchProducts("Test", 0, 20, probe.ref)
+        actor ! ProductActor.SearchProducts("Test", 0, 20, None, probe.ref)
 
         val response = probe.receiveMessage()
         response shouldBe a[ProductActor.ProductsFound]
@@ -180,8 +183,8 @@ class ProductActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
     "receiving GetProductsByCategory command" should {
       "return ProductsFound with category products" in {
         val mockRepository = mock[ProductRepository]
-        val products = Seq(testProduct)
-        when(mockRepository.findByCategory(1L, 0, 20)).thenReturn(Future.successful(products))
+        val productsWithCats = Seq((testProduct, Some("Electronics")))
+        when(mockRepository.findAllWithCategories(0, 20, Some(1L))).thenReturn(Future.successful(productsWithCats))
 
         val actor = spawn(ProductActor(mockRepository))
         val probe = createTestProbe[ProductActor.Response]()

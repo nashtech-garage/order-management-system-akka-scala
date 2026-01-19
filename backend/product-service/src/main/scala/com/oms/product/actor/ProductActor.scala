@@ -13,8 +13,8 @@ object ProductActor {
   // Product commands
   case class CreateProduct(request: CreateProductRequest, replyTo: ActorRef[Response]) extends Command
   case class GetProduct(id: Long, replyTo: ActorRef[Response]) extends Command
-  case class GetAllProducts(offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
-  case class SearchProducts(query: String, offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
+  case class GetAllProducts(offset: Int, limit: Int, categoryFilter: Option[Long] = None, replyTo: ActorRef[Response]) extends Command
+  case class SearchProducts(query: String, offset: Int, limit: Int, categoryFilter: Option[Long] = None, replyTo: ActorRef[Response]) extends Command
   case class GetProductsByCategory(categoryId: Long, offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
   case class UpdateProduct(id: Long, request: UpdateProductRequest, replyTo: ActorRef[Response]) extends Command
   case class UpdateStock(id: Long, quantity: Int, replyTo: ActorRef[Response]) extends Command
@@ -84,10 +84,13 @@ object ProductActor {
           }
           Behaviors.same
           
-        case GetAllProducts(offset, limit, replyTo) =>
-          context.pipeToSelf(repository.findAll(offset, limit)) {
-            case Success(products) =>
-              replyTo ! ProductsFound(products.map(p => ProductResponse.fromProduct(p)))
+        case GetAllProducts(offset, limit, categoryFilter, replyTo) =>
+          context.pipeToSelf(repository.findAllWithCategories(offset, limit, categoryFilter)) {
+            case Success(productsWithCategories) =>
+              val productResponses = productsWithCategories.map { case (product, categoryName) =>
+                ProductResponse.fromProduct(product, categoryName)
+              }
+              replyTo ! ProductsFound(productResponses)
               null
             case Failure(ex) =>
               replyTo ! ProductError(s"Failed to get products: ${ex.getMessage}")
@@ -95,10 +98,13 @@ object ProductActor {
           }
           Behaviors.same
           
-        case SearchProducts(query, offset, limit, replyTo) =>
-          context.pipeToSelf(repository.searchByName(query, offset, limit)) {
-            case Success(products) =>
-              replyTo ! ProductsFound(products.map(p => ProductResponse.fromProduct(p)))
+        case SearchProducts(query, offset, limit, categoryFilter, replyTo) =>
+          context.pipeToSelf(repository.searchByNameWithCategories(query, offset, limit, categoryFilter)) {
+            case Success(productsWithCategories) =>
+              val productResponses = productsWithCategories.map { case (product, categoryName) =>
+                ProductResponse.fromProduct(product, categoryName)
+              }
+              replyTo ! ProductsFound(productResponses)
               null
             case Failure(ex) =>
               replyTo ! ProductError(s"Failed to search products: ${ex.getMessage}")
@@ -107,9 +113,12 @@ object ProductActor {
           Behaviors.same
           
         case GetProductsByCategory(categoryId, offset, limit, replyTo) =>
-          context.pipeToSelf(repository.findByCategory(categoryId, offset, limit)) {
-            case Success(products) =>
-              replyTo ! ProductsFound(products.map(p => ProductResponse.fromProduct(p)))
+          context.pipeToSelf(repository.findAllWithCategories(offset, limit, Some(categoryId))) {
+            case Success(productsWithCategories) =>
+              val productResponses = productsWithCategories.map { case (product, categoryName) =>
+                ProductResponse.fromProduct(product, categoryName)
+              }
+              replyTo ! ProductsFound(productResponses)
               null
             case Failure(ex) =>
               replyTo ! ProductError(s"Failed to get products: ${ex.getMessage}")
