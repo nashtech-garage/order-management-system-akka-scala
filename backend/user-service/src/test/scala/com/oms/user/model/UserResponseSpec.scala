@@ -53,28 +53,32 @@ class UserResponseSpec extends AnyFlatSpec with Matchers {
 
   "LoginRequest" should "create a valid request" in {
     val request = LoginRequest(
-      username = "loginuser",
+      usernameOrEmail = "loginuser",
       password = "loginpass"
     )
 
-    request.username shouldBe "loginuser"
+    request.usernameOrEmail shouldBe "loginuser"
     request.password shouldBe "loginpass"
   }
 
   "UpdateUserRequest" should "create a valid request" in {
     val request = UpdateUserRequest(
       email = Some("updated@example.com"),
-      role = Some("ADMIN")
+      role = Some("admin"),
+      status = None,
+      phoneNumber = None
     )
 
     request.email shouldBe Some("updated@example.com")
-    request.role shouldBe Some("ADMIN")
+    request.role shouldBe Some("admin")
   }
 
   it should "create a request with only email" in {
     val request = UpdateUserRequest(
       email = Some("updated@example.com"),
-      role = None
+      role = None,
+      status = None,
+      phoneNumber = None
     )
 
     request.email shouldBe Some("updated@example.com")
@@ -84,7 +88,9 @@ class UserResponseSpec extends AnyFlatSpec with Matchers {
   it should "create a request with only role" in {
     val request = UpdateUserRequest(
       email = None,
-      role = Some("ADMIN")
+      role = Some("ADMIN"),
+      status = None,
+      phoneNumber = None
     )
 
     request.email shouldBe None
@@ -94,7 +100,8 @@ class UserResponseSpec extends AnyFlatSpec with Matchers {
   "UpdateProfileRequest" should "create a valid request with both fields" in {
     val request = UpdateProfileRequest(
       email = Some("newprofile@example.com"),
-      username = Some("newusername")
+      username = Some("newusername"),
+      phoneNumber = None
     )
 
     request.email shouldBe Some("newprofile@example.com")
@@ -104,7 +111,8 @@ class UserResponseSpec extends AnyFlatSpec with Matchers {
   it should "create a request with only email" in {
     val request = UpdateProfileRequest(
       email = Some("newprofile@example.com"),
-      username = None
+      username = None,
+      phoneNumber = None
     )
 
     request.email shouldBe Some("newprofile@example.com")
@@ -114,7 +122,8 @@ class UserResponseSpec extends AnyFlatSpec with Matchers {
   it should "create a request with only username" in {
     val request = UpdateProfileRequest(
       email = None,
-      username = Some("newusername")
+      username = Some("newusername"),
+      phoneNumber = None
     )
 
     request.email shouldBe None

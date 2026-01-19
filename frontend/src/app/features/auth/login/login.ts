@@ -21,7 +21,7 @@ export class Login {
   errorMessage = signal<string>('');
 
   loginForm = this.fb.group({
-    username: ['', [Validators.required, Validators.minLength(3)]],
+    usernameOrEmail: ['', [Validators.required, Validators.minLength(3)]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
@@ -32,7 +32,7 @@ export class Login {
       this.errorMessage.set('');
 
       this.authService
-        .login(this.loginForm.value as { username: string; password: string })
+        .login(this.loginForm.value as { usernameOrEmail: string; password: string })
         .subscribe({
           next: () => {
             this.isLoading.set(false);
