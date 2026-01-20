@@ -123,7 +123,7 @@ export class ProductForm implements OnInit {
       description: formValue.description || undefined,
       price: formValue.price,
       stockQuantity: formValue.stockQuantity,
-      categoryId: formValue.categoryId || undefined,
+      categoryId: formValue.categoryId ? Number(formValue.categoryId) : undefined,
       imageUrl: formValue.imageUrl || undefined,
     };
 
@@ -155,7 +155,7 @@ export class ProductForm implements OnInit {
       description: formValue.description || undefined,
       price: formValue.price,
       stockQuantity: formValue.stockQuantity,
-      categoryId: formValue.categoryId || undefined,
+      categoryId: formValue.categoryId ? Number(formValue.categoryId) : undefined,
       imageUrl: formValue.imageUrl || undefined,
     };
 
