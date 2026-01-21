@@ -4,6 +4,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.oms.user.model._
 import com.oms.user.repository.UserRepository
+import com.oms.user.error.UserErrorHandler
 import com.oms.common.security.{JwtService, JwtUser}
 import org.mindrot.jbcrypt.BCrypt
 
@@ -58,7 +59,8 @@ object UserActor {
               replyTo ! UserCreated(UserResponse.fromUser(created))
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to create user: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "create user")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -137,7 +139,8 @@ object UserActor {
               replyTo ! UserError(s"User with id $id not found")
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to get user: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "retrieve user")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -151,7 +154,8 @@ object UserActor {
               replyTo ! UserError(s"User profile not found")
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to get user profile: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "retrieve user profile")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -176,7 +180,8 @@ object UserActor {
                 replyTo ! UserError(s"User profile not found")
                 null
               case Failure(ex) =>
-                replyTo ! UserError(s"Failed to update profile: ${ex.getMessage}")
+                val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "update profile")
+                replyTo ! UserError(friendlyMessage)
                 null
             }
             Behaviors.same
@@ -194,7 +199,8 @@ object UserActor {
                   replyTo ! UserError("Failed to change password")
                   null
                 case Failure(ex) =>
-                  replyTo ! UserError(s"Failed to change password: ${ex.getMessage}")
+                  val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "change password")
+                  replyTo ! UserError(friendlyMessage)
                   null
               }
               null
@@ -202,7 +208,8 @@ object UserActor {
               replyTo ! UserError("Current password is incorrect")
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to change password: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "change password")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -213,7 +220,8 @@ object UserActor {
               replyTo ! UsersFound(users.map(UserResponse.fromUser))
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to get users: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "retrieve users")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -233,7 +241,8 @@ object UserActor {
               replyTo ! UserError(s"User with id $id not found")
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to update user: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "update user")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -247,7 +256,8 @@ object UserActor {
               replyTo ! UserError(s"User with id $id not found")
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to delete user: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "delete user")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -279,7 +289,8 @@ object UserActor {
               replyTo ! UserListFound(response)
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to search users: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "search users")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same
@@ -299,7 +310,8 @@ object UserActor {
                 replyTo ! UserError(s"User with id $id not found")
                 null
               case Failure(ex) =>
-                replyTo ! UserError(s"Failed to update account status: ${ex.getMessage}")
+                val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "update account status")
+                replyTo ! UserError(friendlyMessage)
                 null
             }
             Behaviors.same
@@ -317,7 +329,8 @@ object UserActor {
                     replyTo ! BulkActionCompleted(s"Activated $affected users", affected)
                     null
                   case Failure(ex) =>
-                    replyTo ! UserError(s"Failed to activate users: ${ex.getMessage}")
+                    val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "activate users")
+                    replyTo ! UserError(friendlyMessage)
                     null
                 }
               case "lock" =>
@@ -326,7 +339,8 @@ object UserActor {
                     replyTo ! BulkActionCompleted(s"Locked $affected users", affected)
                     null
                   case Failure(ex) =>
-                    replyTo ! UserError(s"Failed to lock users: ${ex.getMessage}")
+                    val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "lock users")
+                    replyTo ! UserError(friendlyMessage)
                     null
                 }
               case "delete" =>
@@ -335,7 +349,8 @@ object UserActor {
                     replyTo ! BulkActionCompleted(s"Deleted $affected users", affected)
                     null
                   case Failure(ex) =>
-                    replyTo ! UserError(s"Failed to delete users: ${ex.getMessage}")
+                    val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "delete users")
+                    replyTo ! UserError(friendlyMessage)
                     null
                 }
               case _ =>
@@ -350,7 +365,8 @@ object UserActor {
               replyTo ! UserStatsFound(stats)
               null
             case Failure(ex) =>
-              replyTo ! UserError(s"Failed to get user statistics: ${ex.getMessage}")
+              val friendlyMessage = UserErrorHandler.toUserFriendlyMessage(ex, "retrieve user statistics")
+              replyTo ! UserError(friendlyMessage)
               null
           }
           Behaviors.same

@@ -58,7 +58,7 @@ class UserActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
         
         probe.expectMessageType[UserActor.UserError] match {
           case UserActor.UserError(message) =>
-            message should include("Failed to create user")
+            message should include("Unable to create user. Please try again later")
         }
       }
     }

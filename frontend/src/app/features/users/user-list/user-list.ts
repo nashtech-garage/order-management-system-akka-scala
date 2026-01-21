@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '@core/services/user.service';
 import { AuthService } from '@features/auth/auth.service';
+import { ToastService } from '@shared/services/toast.service';
 import {
   User,
   UserSearchRequest,
@@ -23,6 +24,7 @@ import {
 export class UserList implements OnInit {
   private userService = inject(UserService);
   private authService = inject(AuthService);
+  private toastService = inject(ToastService);
 
   users = signal<User[]>([]);
   stats = signal<UserStatsResponse | null>(null);
@@ -70,7 +72,7 @@ export class UserList implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to load users: ' + err.message);
+        this.toastService.error('Failed to load users: ' + err.message);
         this.loading.set(false);
       },
     });
@@ -136,13 +138,13 @@ export class UserList implements OnInit {
         })
         .subscribe({
           next: (response) => {
-            alert(response.message);
+            this.toastService.success(response.message);
             this.selectedUsers.set([]);
             this.loadUsers();
             this.loadStats();
           },
           error: (err) => {
-            alert('Failed: ' + err.error?.error || err.message);
+            this.toastService.error('Failed: ' + (err.error?.error || err.message));
           },
         });
     }
@@ -159,13 +161,13 @@ export class UserList implements OnInit {
         })
         .subscribe({
           next: (response) => {
-            alert(response.message);
+            this.toastService.success(response.message);
             this.selectedUsers.set([]);
             this.loadUsers();
             this.loadStats();
           },
           error: (err) => {
-            alert('Failed: ' + err.error?.error || err.message);
+            this.toastService.error('Failed: ' + (err.error?.error || err.message));
           },
         });
     }
@@ -176,7 +178,7 @@ export class UserList implements OnInit {
 
     const currentUser = this.authService.currentUser();
     if (currentUser && this.selectedUsers().includes(currentUser.id)) {
-      alert('You cannot delete your own account!');
+      this.toastService.warning('You cannot delete your own account!');
       return;
     }
 
@@ -188,13 +190,13 @@ export class UserList implements OnInit {
         })
         .subscribe({
           next: (response) => {
-            alert(response.message);
+            this.toastService.success(response.message);
             this.selectedUsers.set([]);
             this.loadUsers();
             this.loadStats();
           },
           error: (err) => {
-            alert('Failed: ' + err.error?.error || err.message);
+            this.toastService.error('Failed: ' + (err.error?.error || err.message));
           },
         });
     }
@@ -203,19 +205,19 @@ export class UserList implements OnInit {
   deleteUser(user: User) {
     const currentUser = this.authService.currentUser();
     if (currentUser && user.id === currentUser.id) {
-      alert('You cannot delete your own account!');
+      this.toastService.warning('You cannot delete your own account!');
       return;
     }
 
     if (confirm(`Delete user "${user.username}"? This cannot be undone!`)) {
       this.userService.deleteUser(user.id).subscribe({
         next: (response) => {
-          alert(response.message);
+          this.toastService.success(response.message);
           this.loadUsers();
           this.loadStats();
         },
         error: (err) => {
-          alert('Failed to delete user: ' + (err.error?.error || err.message));
+          this.toastService.error('Failed to delete user: ' + (err.error?.error || err.message));
         },
       });
     }

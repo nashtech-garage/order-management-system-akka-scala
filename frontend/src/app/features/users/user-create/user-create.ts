@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '@core/services/user.service';
 import { CreateUserRequest } from '@shared/models/user.model';
+import { ToastService } from '@shared/services/toast.service';
 
 @Component({
   selector: 'app-user-create',
@@ -16,6 +17,7 @@ export class UserCreate implements OnInit {
   private userService = inject(UserService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   createForm!: FormGroup;
   loading = signal(false);
@@ -70,11 +72,11 @@ export class UserCreate implements OnInit {
 
     this.userService.register(request).subscribe({
       next: (user) => {
-        alert(`User "${user.username}" created successfully!`);
+        this.toastService.success(`User "${user.username}" created successfully!`);
         this.router.navigate(['/users', user.id]);
       },
       error: (err) => {
-        this.error.set(err.error?.error || err.message || 'Failed to create user');
+        this.toastService.error(err.error?.error || err.message || 'Failed to create user');
         this.loading.set(false);
       },
     });
