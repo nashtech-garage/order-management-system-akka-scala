@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@features/auth/auth.service';
 import { Button } from '@app/shared/components/button/button';
+import { ToastService } from '@shared/services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +17,7 @@ export class Login {
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toastService = inject(ToastService);
 
   isLoading = signal(false);
   errorMessage = signal<string>('');
@@ -45,8 +47,14 @@ export class Login {
           error: (error) => {
             this.isLoading.set(false);
             this.loginForm.enable();
-            const message = error.error?.message || 'Login failed. Please check your credentials.';
+
+            // Extract error message from backend
+            const message = error.error?.error || 'Login failed. Please check your credentials.';
             this.errorMessage.set(message);
+
+            // Also show toast notification
+            this.toastService.error(message);
+
             console.error('Login failed', error);
           },
         });

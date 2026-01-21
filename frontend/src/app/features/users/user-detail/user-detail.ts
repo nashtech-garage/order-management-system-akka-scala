@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '@core/services/user.service';
+import { ToastService } from '@shared/services/toast.service';
 import {
   User,
   UpdateUserRequest,
@@ -24,6 +25,7 @@ export class UserDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   user = signal<User | null>(null);
   loading = signal(false);
@@ -88,7 +90,7 @@ export class UserDetail implements OnInit {
 
   saveChanges() {
     if (this.editForm.invalid) {
-      alert('Please fill all required fields correctly');
+      this.toastService.warning('Please fill all required fields correctly');
       return;
     }
 
@@ -105,12 +107,12 @@ export class UserDetail implements OnInit {
 
     this.userService.updateUser(userId, request).subscribe({
       next: (response) => {
-        alert(response.message);
+        this.toastService.success(response.message);
         this.editMode.set(false);
         this.loadUser(userId);
       },
       error: (err) => {
-        alert('Failed to update user: ' + (err.error?.error || err.message));
+        this.toastService.error('Failed to update user: ' + (err.error?.error || err.message));
         this.loading.set(false);
       },
     });
@@ -127,11 +129,11 @@ export class UserDetail implements OnInit {
 
     this.userService.updateAccountStatus(this.user()!.id, request).subscribe({
       next: (response) => {
-        alert(response.message);
+        this.toastService.success(response.message);
         this.loadUser(this.user()!.id);
       },
       error: (err) => {
-        alert('Failed to update status: ' + (err.error?.error || err.message));
+        this.toastService.error('Failed to update status: ' + (err.error?.error || err.message));
       },
     });
   }
@@ -141,11 +143,11 @@ export class UserDetail implements OnInit {
     if (confirm(`Delete user "${username}"? This cannot be undone!`)) {
       this.userService.deleteUser(this.user()!.id).subscribe({
         next: (response) => {
-          alert(response.message);
+          this.toastService.success(response.message);
           this.router.navigate(['/users']);
         },
         error: (err) => {
-          alert('Failed to delete user: ' + (err.error?.error || err.message));
+          this.toastService.error('Failed to delete user: ' + (err.error?.error || err.message));
         },
       });
     }
