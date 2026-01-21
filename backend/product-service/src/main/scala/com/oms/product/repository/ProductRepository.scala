@@ -81,7 +81,7 @@ class ProductRepository(db: Database)(implicit ec: ExecutionContext) {
       case None => baseQuery
     }
     
-    db.run(filteredQuery.drop(offset).take(limit).result)
+    db.run(filteredQuery.sortBy(_._1.createdAt.desc).drop(offset).take(limit).result)
   }
   
   def findByCategory(categoryId: Long, offset: Int = 0, limit: Int = 20): Future[Seq[Product]] = {
@@ -102,7 +102,7 @@ class ProductRepository(db: Database)(implicit ec: ExecutionContext) {
       case None => baseQuery
     }
     
-    db.run(filteredQuery.drop(offset).take(limit).result)
+    db.run(filteredQuery.sortBy(_._1.createdAt.desc).drop(offset).take(limit).result)
   }
   
   def updateProduct(id: Long, name: Option[String], description: Option[String], 
