@@ -29,14 +29,13 @@ trait ProductJsonFormats extends JsonSupport {
   implicit val productResponseFormat: RootJsonFormat[ProductResponse] = jsonFormat9(ProductResponse.apply)
 }
 
-class ProductRoutes(productActor: ActorRef[ProductActor.Command])(implicit system: ActorSystem[_]) 
+class ProductRoutes(productActor: ActorRef[ProductActor.Command], uploadDir: String = "uploads/products")(implicit system: ActorSystem[_]) 
     extends HttpUtils with ProductJsonFormats {
   
   implicit val timeout: Timeout = 10.seconds
   implicit val ec = system.executionContext
   
-  // Directory to store uploaded images
-  private val uploadDir = "uploads/products"
+  // Directory to store uploaded images (configurable for testing)
   Files.createDirectories(Paths.get(uploadDir))
   
   private def handleImageUpload(fileData: Multipart.FormData): Future[String] = {

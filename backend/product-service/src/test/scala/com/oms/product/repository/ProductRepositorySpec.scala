@@ -461,6 +461,297 @@ class ProductRepositorySpec extends AnyWordSpec with Matchers with ScalaFutures 
         val available = repository.checkStock(99999L, 1).futureValue
         available shouldBe false
       }
+
+      "return true when stock equals required quantity" in {
+        val product = Product(
+          name = "Exact Stock Product",
+          description = None,
+          price = BigDecimal("10.00"),
+          stockQuantity = 10
+        )
+        val created = repository.createProduct(product).futureValue
+
+        val available = repository.checkStock(created.id.get, 10).futureValue
+        available shouldBe true
+      }
+    }
+
+    "finding all products with categories" should {
+      "return products with their category names" in {
+        val category = Category(name = "WithCategoryTest", description = Some("Test category"))
+        val createdCategory = repository.createCategory(category).futureValue
+
+        val product = Product(
+          name = "Product With Category",
+          description = None,
+          price = BigDecimal("15.00"),
+          stockQuantity = 5,
+          categoryId = createdCategory.id
+        )
+        repository.createProduct(product).futureValue
+
+        val results = repository.findAllWithCategories(0, 20).futureValue
+        results should not be empty
+        
+        val productWithCategory = results.find(_._1.name == "Product With Category")
+        productWithCategory should not be None
+        productWithCategory.get._2 shouldBe Some("WithCategoryTest")
+      }
+
+      "return products without categories" in {
+        val product = Product(
+          name = "Product Without Category",
+          description = None,
+          price = BigDecimal("25.00"),
+          stockQuantity = 3,
+          categoryId = None
+        )
+        repository.createProduct(product).futureValue
+
+        val results = repository.findAllWithCategories(0, 20).futureValue
+        val productWithoutCategory = results.find(_._1.name == "Product Without Category")
+        
+        productWithoutCategory should not be None
+        productWithoutCategory.get._2 shouldBe None
+      }
+
+      "filter by category when categoryFilter is provided" in {
+        val category1 = Category(name = "FilterCategory1", description = None)
+        val category2 = Category(name = "FilterCategory2", description = None)
+        val createdCategory1 = repository.createCategory(category1).futureValue
+        val createdCategory2 = repository.createCategory(category2).futureValue
+
+        val product1 = Product(
+          name = "Product In Category 1",
+          description = None,
+          price = BigDecimal("10.00"),
+          stockQuantity = 1,
+          categoryId = createdCategory1.id
+        )
+        val product2 = Product(
+          name = "Product In Category 2",
+          description = None,
+          price = BigDecimal("20.00"),
+          stockQuantity = 2,
+          categoryId = createdCategory2.id
+        )
+
+        repository.createProduct(product1).futureValue
+        repository.createProduct(product2).futureValue
+
+        val results = repository.findAllWithCategories(0, 20, Some(createdCategory1.id.get)).futureValue
+        results.foreach { case (product, categoryName) =>
+          product.categoryId shouldBe createdCategory1.id
+          categoryName shouldBe Some("FilterCategory1")
+        }
+      }
+
+      "respect offset and limit" in {
+        val firstPage = repository.findAllWithCategories(0, 2).futureValue
+        val secondPage = repository.findAllWithCategories(2, 2).futureValue
+
+        firstPage should have size 2
+        firstPage should not equal secondPage
+      }
+    }
+
+    "searching products by name with categories" should {
+      "return products matching query with category names" in {
+        val category = Category(name = "SearchCategory", description = None)
+        val createdCategory = repository.createCategory(category).futureValue
+
+        val product = Product(
+          name = "UniqueSearchProduct",
+          description = None,
+          price = BigDecimal("12.00"),
+          stockQuantity = 4,
+          categoryId = createdCategory.id
+        )
+        repository.createProduct(product).futureValue
+
+        val results = repository.searchByNameWithCategories("UniqueSearch", 0, 10).futureValue
+        results should not be empty
+        
+        val foundProduct = results.find(_._1.name == "UniqueSearchProduct")
+        foundProduct should not be None
+        foundProduct.get._2 shouldBe Some("SearchCategory")
+      }
+
+      "be case insensitive" in {
+        val product = Product(
+          name = "CaseInsensitiveSearchTest",
+          description = None,
+          price = BigDecimal("8.00"),
+          stockQuantity = 2,
+          categoryId = None
+        )
+        repository.createProduct(product).futureValue
+
+        val results = repository.searchByNameWithCategories("caseinsensitive", 0, 10).futureValue
+        results should not be empty
+        results.exists(_._1.name == "CaseInsensitiveSearchTest") shouldBe true
+      }
+
+      "filter by category when categoryFilter is provided" in {
+        val category1 = Category(name = "SearchFilterCat1", description = None)
+        val category2 = Category(name = "SearchFilterCat2", description = None)
+        val createdCategory1 = repository.createCategory(category1).futureValue
+        val createdCategory2 = repository.createCategory(category2).futureValue
+
+        val product1 = Product(
+          name = "SearchFilter Product One",
+          description = None,
+          price = BigDecimal("10.00"),
+          stockQuantity = 1,
+          categoryId = createdCategory1.id
+        )
+        val product2 = Product(
+          name = "SearchFilter Product Two",
+          description = None,
+          price = BigDecimal("20.00"),
+          stockQuantity = 2,
+          categoryId = createdCategory2.id
+        )
+
+        repository.createProduct(product1).futureValue
+        repository.createProduct(product2).futureValue
+
+        val results = repository.searchByNameWithCategories("SearchFilter", 0, 20, Some(createdCategory1.id.get)).futureValue
+        results should not be empty
+        results.foreach { case (product, categoryName) =>
+          product.categoryId shouldBe createdCategory1.id
+          categoryName shouldBe Some("SearchFilterCat1")
+        }
+      }
+
+      "return empty when no products match" in {
+        val results = repository.searchByNameWithCategories("NonExistentProductName12345", 0, 10).futureValue
+        results shouldBe empty
+      }
+
+      "respect offset and limit" in {
+        // Create multiple products for pagination
+        (1 to 5).foreach { i =>
+          val product = Product(
+            name = s"PaginationSearchProduct$i",
+            description = None,
+            price = BigDecimal("5.00"),
+            stockQuantity = 1,
+            categoryId = None
+          )
+          repository.createProduct(product).futureValue
+        }
+
+        val firstPage = repository.searchByNameWithCategories("PaginationSearch", 0, 2).futureValue
+        val secondPage = repository.searchByNameWithCategories("PaginationSearch", 2, 2).futureValue
+
+        firstPage should have size 2
+        secondPage should have size 2
+        firstPage should not equal secondPage
+      }
+    }
+
+    "updating product with category" should {
+      "successfully update category" in {
+        val category1 = Category(name = "OriginalCategory", description = None)
+        val category2 = Category(name = "NewCategory", description = None)
+        val createdCategory1 = repository.createCategory(category1).futureValue
+        val createdCategory2 = repository.createCategory(category2).futureValue
+
+        val product = Product(
+          name = "Category Update Product",
+          description = None,
+          price = BigDecimal("10.00"),
+          stockQuantity = 1,
+          categoryId = createdCategory1.id
+        )
+        val created = repository.createProduct(product).futureValue
+
+        val updated = repository.updateProduct(
+          id = created.id.get,
+          name = None,
+          description = None,
+          price = None,
+          stockQuantity = None,
+          categoryId = createdCategory2.id,
+          imageUrl = None
+        ).futureValue
+
+        updated shouldBe 1
+
+        val found = repository.findById(created.id.get).futureValue
+        found.get.categoryId shouldBe createdCategory2.id
+      }
+    }
+
+    "edge cases" should {
+      "handle products with zero price" in {
+        val product = Product(
+          name = "Zero Price Product",
+          description = None,
+          price = BigDecimal("0.00"),
+          stockQuantity = 1
+        )
+        val created = repository.createProduct(product).futureValue
+
+        created.price shouldBe BigDecimal("0.00")
+      }
+
+      "handle products with very large price" in {
+        val product = Product(
+          name = "Expensive Product",
+          description = None,
+          price = BigDecimal("99999999.99"),
+          stockQuantity = 1
+        )
+        val created = repository.createProduct(product).futureValue
+
+        created.price shouldBe BigDecimal("99999999.99")
+      }
+
+      "handle products with zero stock" in {
+        val product = Product(
+          name = "Zero Stock Product",
+          description = None,
+          price = BigDecimal("10.00"),
+          stockQuantity = 0
+        )
+        val created = repository.createProduct(product).futureValue
+
+        created.stockQuantity shouldBe 0
+      }
+
+      "handle empty search query" in {
+        val results = repository.searchByName("", 0, 10).futureValue
+        // Empty string should match all products (contains empty string)
+        results should not be empty
+      }
+
+      "handle very long product names" in {
+        val longName = "A" * 200
+        val product = Product(
+          name = longName,
+          description = None,
+          price = BigDecimal("10.00"),
+          stockQuantity = 1
+        )
+        val created = repository.createProduct(product).futureValue
+
+        created.name shouldBe longName
+      }
+
+      "handle very long descriptions" in {
+        val longDescription = "Description " * 100
+        val product = Product(
+          name = "Long Description Product",
+          description = Some(longDescription),
+          price = BigDecimal("10.00"),
+          stockQuantity = 1
+        )
+        val created = repository.createProduct(product).futureValue
+
+        created.description shouldBe Some(longDescription)
+      }
     }
   }
 }

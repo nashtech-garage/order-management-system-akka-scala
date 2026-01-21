@@ -5,6 +5,7 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, Multipart, StatusCodes}
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import com.oms.product.actor.ProductActor
@@ -15,13 +16,31 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import spray.json._
 import java.time.LocalDateTime
+import java.nio.file.{Files, Paths}
+import scala.util.Try
 
 class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with ScalaFutures with BeforeAndAfterAll with ProductJsonFormats {
 
   val testKit = ActorTestKit()
   implicit val typedSystem: ActorSystem[Nothing] = testKit.system
 
+  // Use separate test upload directory to avoid deleting real uploads
+  private val testUploadDir = "test-uploads/products"
+
+  // Helper method to delete directory recursively
+  private def deleteDirectory(path: java.nio.file.Path): Unit = {
+    if (Files.exists(path)) {
+      Try {
+        Files.walk(path)
+          .sorted(java.util.Comparator.reverseOrder())
+          .forEach(Files.delete)
+      }
+    }
+  }
+
   override def afterAll(): Unit = {
+    // Clean up ONLY test upload directory, not the real uploads folder
+    deleteDirectory(Paths.get("test-uploads"))
     testKit.shutdownTestKit()
     super.afterAll()
   }
@@ -41,6 +60,11 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     name = "Electronics",
     description = Some("Electronic devices")
   )
+
+  // Helper to create routes with test upload directory
+  def createRoutes(actor: akka.actor.typed.ActorRef[ProductActor.Command]): Route = {
+    new ProductRoutes(actor, testUploadDir).routes
+  }
 
   def createTestActor(): akka.actor.typed.ActorRef[ProductActor.Command] = {
     testKit.spawn(Behaviors.receiveMessage[ProductActor.Command] {
@@ -158,7 +182,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "POST /products" should {
       "create a new product" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = CreateProductRequest(
           name = "Test Product",
@@ -181,7 +205,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /products" should {
       "return all products" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -192,7 +216,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "support pagination" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products?offset=0&limit=10") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -203,7 +227,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "support search" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products?search=Test") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -216,7 +240,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /products/:id" should {
       "return product when it exists" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/1") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -229,7 +253,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return 404 when product doesn't exist" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/999") ~> routes ~> check {
           status shouldBe StatusCodes.NotFound
@@ -240,7 +264,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "PUT /products/:id" should {
       "update an existing product" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = UpdateProductRequest(
           name = Some("Updated Name"),
@@ -260,7 +284,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return 404 when product doesn't exist" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = UpdateProductRequest(None, None, None, None, None, None)
 
@@ -273,7 +297,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "DELETE /products/:id" should {
       "delete an existing product" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Delete("/products/1") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -284,7 +308,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return 404 when product doesn't exist" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Delete("/products/999") ~> routes ~> check {
           status shouldBe StatusCodes.NotFound
@@ -295,7 +319,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "PUT /products/:id/stock" should {
       "update stock quantity" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = UpdateStockRequest(quantity = 50)
 
@@ -308,7 +332,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return error when product doesn't exist" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = UpdateStockRequest(quantity = 50)
 
@@ -321,7 +345,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /products/:id/stock/check" should {
       "return true when stock is sufficient" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/1/stock/check?quantity=5") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -332,7 +356,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return false when stock is insufficient" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/1/stock/check?quantity=20") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -345,7 +369,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /products/category/:categoryId" should {
       "return products for specific category" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/category/1") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -356,7 +380,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return empty list for category with no products" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/category/999") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -369,7 +393,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "POST /categories" should {
       "create a new category" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = CreateCategoryRequest(
           name = "Electronics",
@@ -388,7 +412,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /categories" should {
       "return all categories" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/categories") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -401,7 +425,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "DELETE /categories/:id" should {
       "delete an existing category" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Delete("/categories/1") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -412,7 +436,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return 404 when category doesn't exist" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Delete("/categories/999") ~> routes ~> check {
           status shouldBe StatusCodes.NotFound
@@ -423,7 +447,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /health" should {
       "return OK status" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/health") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -434,7 +458,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "POST /products/:id/upload-image" should {
       "upload an image successfully" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = new ProductRoutes(actor, testUploadDir).routes
 
         val fileBytes = ByteString("fake image content")
         val bodyPart = Multipart.FormData.BodyPart(
@@ -453,7 +477,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "return 400 when upload fails" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = new ProductRoutes(actor, testUploadDir).routes
 
         val fileBytes = ByteString("content")
         val bodyPart = Multipart.FormData.BodyPart(
@@ -472,7 +496,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /uploads/products/:fileName" should {
       "return 404 when image doesn't exist" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/uploads/products/nonexistent.jpg") ~> routes ~> check {
           status shouldBe StatusCodes.NotFound
@@ -483,7 +507,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "Error handling" should {
       "handle InternalServerError responses" in {
         val errorActor = testKit.spawn(Behaviors.receiveMessage[ProductActor.Command] {
-          case ProductActor.GetAllProducts(_, _, replyTo) =>
+          case ProductActor.GetAllProducts(_, _, _, replyTo) =>
             replyTo ! ProductActor.ProductError("Database error")
             Behaviors.same
           case _ => Behaviors.same
@@ -498,7 +522,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "handle missing required parameters" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/1/stock/check") ~> routes ~> check {
           handled shouldBe false
@@ -507,7 +531,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "handle search with empty query" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products?search=") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -518,7 +542,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "handle category endpoint with pagination" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/category/1?offset=5&limit=5") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -529,7 +553,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "handle update with all None values" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         val request = UpdateProductRequest(None, None, None, None, None, None)
 
@@ -540,7 +564,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "handle zero stock check" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products/1/stock/check?quantity=0") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -570,7 +594,7 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
       "handle large offset values" in {
         val actor = createTestActor()
-        val routes = new ProductRoutes(actor).routes
+        val routes = createRoutes(actor)
 
         Get("/products?offset=1000000&limit=20") ~> routes ~> check {
           status shouldBe StatusCodes.OK
@@ -579,3 +603,4 @@ class ProductRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     }
   }
 }
+
