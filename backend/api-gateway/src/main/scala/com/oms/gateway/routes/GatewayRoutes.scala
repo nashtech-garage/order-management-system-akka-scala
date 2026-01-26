@@ -108,14 +108,20 @@ class GatewayRoutes(
   }
   
   private def customersRoutes: Route = pathPrefix("customers") {
-    proxyToService("customer-service", "/customers")
+    authenticate { _ =>
+      proxyToService("customer-service", "/customers")
+    }
   }
   
   private def productsRoutes: Route = pathPrefix("products") {
-    proxyToService("product-service", "/products")
+    authenticate { _ =>
+      proxyToService("product-service", "/products")
+    }
   } ~
   pathPrefix("categories") {
-    proxyToService("product-service", "/categories")
+    authenticate { _ =>
+      proxyToService("product-service", "/categories")
+    }
   }
   
   private def ordersRoutes: Route = pathPrefix("orders") {
