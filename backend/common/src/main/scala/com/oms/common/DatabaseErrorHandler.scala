@@ -89,7 +89,7 @@ trait DatabaseErrorHandler {
    */
   protected def extractUniqueConstraintMessage(message: String, operation: String): String = {
     // Extract constraint name and field
-    val constraintPattern = """constraint "([^"]+)".*Key \(([^)]+)\)=\(([^)]+)\)""".r
+    val constraintPattern = """(?s).*constraint "([^"]+)".*Key \(([^)]+)\)=\(([^)]+)\).*""".r
     
     message match {
       case constraintPattern(constraint, field, value) =>
@@ -121,7 +121,7 @@ trait DatabaseErrorHandler {
     if (message.contains("still referenced")) {
       "Cannot delete this record because it is being used by other records"
     } else if (message.contains("not present")) {
-      val tablePattern = """table "([^"]+)".*Key \(([^)]+)\)=\(([^)]+)\)""".r
+      val tablePattern = """(?s).*table "([^"]+)".*Key \(([^)]+)\)=\(([^)]+)\).*""".r
       message match {
         case tablePattern(table, field, value) =>
           val cleanTable = table.replace("_", " ")
@@ -139,7 +139,7 @@ trait DatabaseErrorHandler {
    * Services can override this to provide custom messages for their required fields.
    */
   protected def extractNotNullMessage(message: String, operation: String): String = {
-    val columnPattern = """column "([^"]+)"""".r
+    val columnPattern = """(?s).*column "([^"]+)".*""".r
     
     message match {
       case columnPattern(column) =>
@@ -155,7 +155,7 @@ trait DatabaseErrorHandler {
    * Services can override this to provide custom messages for their validation rules.
    */
   protected def extractCheckConstraintMessage(message: String, operation: String): String = {
-    val constraintPattern = """constraint "([^"]+)"""".r
+    val constraintPattern = """(?s).*constraint "([^"]+)".*""".r
     
     message match {
       case constraintPattern(constraint) =>

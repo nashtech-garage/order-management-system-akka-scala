@@ -164,8 +164,7 @@ class DatabaseErrorHandlerSpec extends AnyFlatSpec with Matchers {
   
   // Helper method to create PSQLException
   private def createPSQLException(message: String, sqlState: String): PSQLException = {
-    val serverError = new ServerErrorMessage(message)
-    new PSQLException(serverError) {
+    new PSQLException(message, null) {
       override def getSQLState: String = sqlState
     }
   }

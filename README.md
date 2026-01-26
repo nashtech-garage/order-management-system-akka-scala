@@ -39,6 +39,46 @@ The system employs a **Database-per-Service** pattern using a **PostgreSQL Clust
 - **order_db**: Dedicated to Order Service.
 - **payment_db**: Dedicated to Payment Service.
 
+### Architectural Patterns by Service
+
+Each microservice implements specific architectural patterns based on its domain requirements:
+
+#### User Service
+- **Patterns Applied**: 
+  - *[To be documented: e.g., Repository Pattern, Actor Model, etc.]*
+- **Key Responsibilities**: Authentication, authorization, user profile management
+- **Data Model**: *[To be documented]*
+
+#### Customer Service
+- **Patterns Applied**: 
+  - *[To be documented: e.g., Repository Pattern, CQRS, etc.]*
+- **Key Responsibilities**: Customer profile management, address management
+- **Data Model**: *[To be documented]*
+
+#### Product Service
+- **Patterns Applied**: 
+  - *[To be documented: e.g., Repository Pattern, Event Sourcing, etc.]*
+- **Key Responsibilities**: Product catalog, inventory management, category management
+- **Data Model**: *[To be documented]*
+
+#### Order Service
+- **Patterns Applied**: 
+  - *[To be documented: e.g., Saga Pattern, Event Sourcing, CQRS, etc.]*
+- **Key Responsibilities**: Order lifecycle management, order state transitions
+- **Data Model**: *[To be documented]*
+
+#### Payment Service
+- **Patterns Applied**: 
+  - *[To be documented: e.g., Saga Pattern, Idempotency Pattern, etc.]*
+- **Key Responsibilities**: Payment processing, transaction management, refunds
+- **Data Model**: *[To be documented]*
+
+#### Report Service
+- **Patterns Applied**: 
+  - *[To be documented: e.g., CQRS, Materialized View Pattern, etc.]*
+- **Key Responsibilities**: Analytics, business intelligence, reporting
+- **Data Model**: *[To be documented]*
+
 ## 📦 Project Structure
 
 ```
@@ -550,7 +590,32 @@ CMD ["java", "-jar", "app.jar"]
 docker-compose up -d
 ```
 
-## 📚 API Documentation
+## � UI Screenshots
+
+Visual documentation of the application's user interface:
+
+### Dashboard
+*[To be added - screenshot of main dashboard]*
+
+### User Management
+*[To be added - screenshots of user registration, login, profile pages]*
+
+### Product Catalog
+*[To be added - screenshots of product listing, product details, search/filter]*
+
+### Order Management
+*[To be added - screenshots of order creation, order tracking, order history]*
+
+### Payment Processing
+*[To be added - screenshots of payment flow, payment confirmation]*
+
+### Reports & Analytics
+*[To be added - screenshots of various reports and dashboards]*
+
+### Responsive Design
+*[To be added - screenshots showing mobile, tablet, and desktop views]*
+
+## �📚 API Documentation
 
 ### API Gateway Endpoints
 
@@ -609,6 +674,210 @@ npm run e2e
 # Test coverage
 npm test -- --code-coverage
 ```
+
+### Test Documentation
+
+#### Backend Unit Tests
+
+Each service has comprehensive unit tests covering actors, routes, repositories, and models:
+
+##### User Service
+<details>
+<summary>Click to view test results (119 Unit Tests)</summary>
+
+```
+[info] UserActorSpec:
+[info] UserActor
+[info]   when receiving CreateUser command
+[info]   - should return UserCreated on success
+[info]   - should return UserError on failure
+[info]   when receiving GetUser command
+[info]   - should return UserFound when user exists
+[info]   - should return UserError when user not found
+[info]   when receiving GetAllUsers command
+[info]   - should return UsersFound with list of users
+...
+[info] Run completed in 7 seconds, 990 milliseconds.
+[info] Total number of tests run: 119
+[info] Suites: completed 4, aborted 0
+[info] Tests: succeeded 119, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 22 s
+```
+</details>
+
+##### Customer Service
+<details>
+<summary>Click to view test results (60 Unit Tests)</summary>
+
+```
+[info] CustomerActorSpec:
+[info] CustomerActor
+[info]   when receiving CreateCustomer command
+[info]   - should return CustomerCreated on success
+[info]   - should return CustomerError on failure
+...
+[info] Run completed in 6 seconds, 282 milliseconds.
+[info] Total number of tests run: 60
+[info] Suites: completed 5, aborted 0
+[info] Tests: succeeded 60, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 18 s
+```
+</details>
+
+##### Product Service
+<details>
+<summary>Click to view test results (117 Unit Tests)</summary>
+
+```
+[info] ProductRepositorySpec:
+[info] ProductRepository
+[info]   when creating a category
+[info]   - should successfully insert and return category with id
+[info]   when finding a category by id
+...
+[info] Run completed in 12 seconds, 182 milliseconds.
+[info] Total number of tests run: 117
+[info] Suites: completed 5, aborted 0
+[info] Tests: succeeded 117, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 25 s
+```
+</details>
+
+##### Order Service
+<details>
+<summary>Click to view test results (145 Unit Tests)</summary>
+
+```
+[info] OrderRepositorySpec:
+[info] OrderRepository
+[info]   when creating an order
+[info]   - should successfully create order with items
+[info]   when finding an order by id
+...
+[info] Run completed in 20 seconds, 828 milliseconds.
+[info] Total number of tests run: 145
+[info] Suites: completed 7, aborted 0
+[info] Tests: succeeded 145, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 39 s
+```
+</details>
+
+##### Payment Service
+<details>
+<summary>Click to view test results (58 Unit Tests)</summary>
+
+```
+[info] PaymentActorSpec:
+[info] PaymentActor
+[info]   when receiving CreatePayment command
+[info]   - should return PaymentCreated on success
+[info]   - should return PaymentError on failure
+...
+[info] Run completed in 6 seconds, 597 milliseconds.
+[info] Total number of tests run: 58
+[info] Suites: completed 5, aborted 0
+[info] Tests: succeeded 58, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 21 s
+```
+</details>
+
+##### Report Service
+<details>
+<summary>Click to view test results (136 Unit Tests)</summary>
+
+```
+[info] ReportActorSpec:
+[info] ReportActor
+[info] - should generate sales report successfully
+[info] - should return error for invalid date format
+...
+[info] Run completed in 10 seconds, 276 milliseconds.
+[info] Total number of tests run: 136
+[info] Suites: completed 5, aborted 0
+[info] Tests: succeeded 136, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 30 s
+```
+</details>
+
+##### API Gateway
+<details>
+<summary>Click to view test results (66 Unit Tests)</summary>
+
+```
+[info] AuthMiddlewareSpec:
+[info] AuthMiddleware authenticate
+[info] - should allow access with valid token
+[info] - should reject request with invalid token
+...
+[info] GatewayRoutesSpec:
+[info] GatewayRoutes
+[info] - should handle health check endpoint
+...
+[info] Run completed in 3 seconds, 693 milliseconds.
+[info] Total number of tests run: 66
+[info] Suites: completed 2, aborted 0
+[info] Tests: succeeded 66, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 16 s
+```
+</details>
+
+##### Common Module
+<details>
+<summary>Click to view test results (104 Unit Tests)</summary>
+
+```
+[info] HttpUtilsSpec:
+[info] HttpUtils
+[info]   when using completeWithJson
+[info]   - should return 200 OK with JSON body
+...
+[info] DatabaseErrorHandlerSpec:
+[info] DatabaseErrorHandler
+[info] - should handle unique constraint violations for username
+...
+[info] Run completed in 2 seconds, 851 milliseconds.
+[info] Total number of tests run: 104
+[info] Suites: completed 6, aborted 0
+[info] Tests: succeeded 104, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[success] Total time: 9 s
+```
+</details>
+
+#### Frontend Unit Tests
+- *[To be added - links to Angular component and service test files]*
+
+#### Test Reports
+- **Backend Coverage Reports**: Generated via `sbt coverage test coverageReport` - *[Path to be documented]*
+- **Frontend Coverage Reports**: Generated via `npm test -- --code-coverage` - *[Path to be documented]*
+
+### Code Coverage
+
+Code coverage metrics and reports:
+
+#### Backend Coverage
+- **Overall Coverage**: *[To be documented - e.g., 85%]*
+- **Service-Specific Coverage**:
+  - User Service: *[To be documented]*
+  - Customer Service: *[To be documented]*
+  - Product Service: *[To be documented]*
+  - Order Service: *[To be documented]*
+  - Payment Service: *[To be documented]*
+  - Report Service: *[To be documented]*
+- **Coverage Reports**: *[To be documented - link to detailed coverage reports]*
+
+#### Frontend Coverage
+- **Overall Coverage**: *[To be documented - e.g., 80%]*
+- **Component Coverage**: *[To be documented]*
+- **Service Coverage**: *[To be documented]*
+- **Coverage Reports**: *[To be documented - link to detailed coverage reports]*
 
 ## 🐛 Troubleshooting
 
