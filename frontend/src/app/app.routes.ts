@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth-guard';
-import { adminGuard } from '@core/guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -67,6 +66,18 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/user-profile/user-profile').then((m) => m.UserProfileComponent),
+      },
+    ],
+  },
+  {
     path: 'products',
     canActivate: [authGuard],
     loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
@@ -107,7 +118,7 @@ export const routes: Routes = [
   },
   {
     path: 'users',
-    canActivate: [authGuard, adminGuard],
+    canActivate: [authGuard],
     loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
     children: [
       {
