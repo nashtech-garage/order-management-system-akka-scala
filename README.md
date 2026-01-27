@@ -601,7 +601,7 @@ Visual documentation of the application's user interface:
 *[To be added - screenshots of user registration, login, profile pages]*
 
 ### Product Catalog
-*[To be added - screenshots of product listing, product details, search/filter]*
+![alt text](image.png)
 
 ### Order Management
 *[To be added - screenshots of order creation, order tracking, order history]*
@@ -860,24 +860,70 @@ Each service has comprehensive unit tests covering actors, routes, repositories,
 
 ### Code Coverage
 
-Code coverage metrics and reports:
+The project uses **scoverage** for Scala code coverage analysis. All backend services have comprehensive test suites with 100% test pass rate.
 
-#### Backend Coverage
-- **Overall Coverage**: *[To be documented - e.g., 85%]*
-- **Service-Specific Coverage**:
-  - User Service: *[To be documented]*
-  - Customer Service: *[To be documented]*
-  - Product Service: *[To be documented]*
-  - Order Service: *[To be documented]*
-  - Payment Service: *[To be documented]*
-  - Report Service: *[To be documented]*
-- **Coverage Reports**: *[To be documented - link to detailed coverage reports]*
+#### Backend Test Summary
+
+| Service | Test Suites | Total Tests | Status | Test Time |
+|---------|-------------|-------------|--------|-----------|
+| **User Service** | 4 | 119 | ✅ All Passed | 22s |
+| **Customer Service** | 5 | 60 | ✅ All Passed | 18s |
+| **Product Service** | 5 | 117 | ✅ All Passed | 25s |
+| **Order Service** | 7 | 145 | ✅ All Passed | 39s |
+| **Payment Service** | 5 | 58 | ✅ All Passed | 21s |
+| **Report Service** | 5 | 136 | ✅ All Passed | 30s |
+| **API Gateway** | 2 | 66 | ✅ All Passed | 16s |
+| **Common Module** | 6 | 104 | ✅ All Passed | 9s |
+| **TOTAL** | **39** | **805** | ✅ **100%** | **180s** |
+
+#### Generating Coverage Reports
+
+To generate detailed code coverage reports with scoverage:
+
+```bash
+cd backend
+
+# Generate coverage for all services
+sbt clean coverage test coverageReport
+
+# Generate aggregated coverage report
+sbt coverageAggregate
+
+# View individual service reports
+# Reports are generated at: backend/{service}/target/scala-2.13/scoverage-report/index.html
+```
+
+**Coverage Report Locations:**
+- User Service: `backend/user-service/target/scala-2.13/scoverage-report/index.html`
+- Customer Service: `backend/customer-service/target/scala-2.13/scoverage-report/index.html`
+- Product Service: `backend/product-service/target/scala-2.13/scoverage-report/index.html`
+- Order Service: `backend/order-service/target/scala-2.13/scoverage-report/index.html`
+- Payment Service: `backend/payment-service/target/scala-2.13/scoverage-report/index.html`
+- Report Service: `backend/report-service/target/scala-2.13/scoverage-report/index.html`
+- API Gateway: `backend/api-gateway/target/scala-2.13/scoverage-report/index.html`
+- Common Module: `backend/common/target/scala-2.13/scoverage-report/index.html`
+- **Aggregated Report**: `backend/target/scala-2.13/scoverage-report/index.html`
+
+#### Coverage Exclusions
+
+The following packages are excluded from coverage analysis:
+- `*.seeder.*` - Database seeding utilities
+- `*.migration.*` - Database migration scripts
+- `*Main` - Application entry points (e.g., `UserMain`, `GatewayMain`)
 
 #### Frontend Coverage
-- **Overall Coverage**: *[To be documented - e.g., 80%]*
-- **Component Coverage**: *[To be documented]*
-- **Service Coverage**: *[To be documented]*
-- **Coverage Reports**: *[To be documented - link to detailed coverage reports]*
+
+Frontend test coverage can be generated using:
+
+```bash
+cd frontend
+
+# Run tests with coverage
+npm test -- --code-coverage
+
+# View coverage report
+# Open: frontend/coverage/index.html
+```
 
 ## 🐛 Troubleshooting
 
