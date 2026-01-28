@@ -1,46 +1,52 @@
 export interface Order {
-  id: string;
-  customerId: string;
-  orderDate: Date;
+  id: number;
+  customerId: number;
+  customerName?: string;
+  createdBy: number;
   status: OrderStatus;
   totalAmount: number;
   items: OrderItem[];
-  shippingAddress: Address;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  PROCESSING = 'PROCESSING',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
+  DRAFT = 'draft',
+  CREATED = 'created',
+  PAID = 'paid',
+  SHIPPING = 'shipping',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
 }
 
 export interface OrderItem {
-  id: string;
-  productId: string;
-  productName: string;
+  id: number;
+  productId: number;
+  productName?: string;
   quantity: number;
   unitPrice: number;
   subtotal: number;
 }
 
-export interface Address {
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
-
 export interface CreateOrderRequest {
-  customerId: string;
+  customerId: number;
   items: {
-    productId: string;
+    productId: number;
     quantity: number;
   }[];
-  shippingAddress: Address;
+}
+
+export interface PaymentInfo {
+  paymentId: string;
+  orderId: number;
+  status: string;
+  message: string;
+}
+
+export interface OrderStats {
+  totalOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  pendingOrders: number;
+  totalRevenue: number;
 }

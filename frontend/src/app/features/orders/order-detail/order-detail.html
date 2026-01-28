@@ -1,0 +1,194 @@
+<div class="order-detail-container">
+  @if (loading()) {
+    <div class="loading">Loading order details...</div>
+  } @else if (error()) {
+    <div class="error-container">
+      <div class="error">{{ error() }}</div>
+      <button class="btn-secondary" (click)="goBack()">Go Back</button>
+    </div>
+  } @else if (order()) {
+    <div class="header">
+      <div>
+        <button class="btn-back" (click)="goBack()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back to Orders
+        </button>
+        <h1>Order #{{ order()!.id }}</h1>
+      </div>
+      <span class="status-badge" [class]="'status-' + order()!.status">
+        {{ order()!.status }}
+      </span>
+    </div>
+
+    <div class="content-grid">
+      <!-- Order Information -->
+      <div class="card">
+        <h2>Order Information</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Order ID:</span>
+            <span class="value">#{{ order()!.id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Status:</span>
+            <span class="value">{{ order()!.status }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Customer:</span>
+            <span class="value">{{
+              order()!.customerName || 'Customer #' + order()!.customerId
+            }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Total Amount:</span>
+            <span class="value total">${{ order()!.totalAmount | number: '1.2-2' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Created At:</span>
+            <span class="value">{{ formatDate(order()!.createdAt) }}</span>
+          </div>
+          @if (order()!.updatedAt) {
+            <div class="info-item">
+              <span class="label">Updated At:</span>
+              <span class="value">{{ formatDate(order()!.updatedAt!) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Order Items -->
+      <div class="card">
+        <h2>Order Items</h2>
+        <div class="items-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of order()!.items; track item.id) {
+                <tr>
+                  <td>{{ item.productName || 'Product #' + item.productId }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>\${{ item.unitPrice | number: '1.2-2' }}</td>
+                  <td>\${{ item.subtotal | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="total-label">Total:</td>
+                <td class="total-value">\${{ order()!.totalAmount | number: '1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card actions-card">
+        <h2>Actions</h2>
+        <div class="actions-grid">
+          @if (order()!.status === 'draft') {
+            <button class="btn-action btn-confirm" (click)="confirmOrder()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Confirm Order
+            </button>
+          }
+          @if (order()!.status === 'created') {
+            <button class="btn-action btn-pay" (click)="payOrder()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
+              Process Payment
+            </button>
+          }
+          @if (order()!.status === 'paid') {
+            <button class="btn-action btn-ship" (click)="shipOrder()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+              </svg>
+              Start Shipping
+            </button>
+          }
+          @if (order()!.status === 'shipping') {
+            <button class="btn-action btn-complete" (click)="completeOrder()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Complete Order
+            </button>
+          }
+          @if (order()!.status !== 'completed' && order()!.status !== 'cancelled') {
+            <button class="btn-action btn-cancel" (click)="cancelOrder()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Cancel Order
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

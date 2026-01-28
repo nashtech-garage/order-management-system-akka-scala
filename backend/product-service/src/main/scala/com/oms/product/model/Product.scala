@@ -23,6 +23,7 @@ case class CreateProductRequest(name: String, description: Option[String], price
 case class UpdateProductRequest(name: Option[String], description: Option[String], price: Option[BigDecimal], stockQuantity: Option[Int], categoryId: Option[Long], imageUrl: Option[String])
 case class CreateCategoryRequest(name: String, description: Option[String])
 case class UpdateStockRequest(quantity: Int)
+case class AdjustStockRequest(adjustment: Int)
 
 case class ProductResponse(
   id: Long,

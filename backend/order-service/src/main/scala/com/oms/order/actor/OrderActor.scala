@@ -9,6 +9,7 @@ import com.oms.order.repository.OrderRepository
 import com.oms.order.client.{ServiceClient, PaymentInfo}
 import com.oms.order.stream.{OrderStreamProcessor, OrderStats}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object OrderActor {
@@ -20,8 +21,11 @@ object OrderActor {
   case class GetOrdersByCustomer(customerId: Long, offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
   case class GetOrdersByStatus(status: String, offset: Int, limit: Int, replyTo: ActorRef[Response]) extends Command
   case class UpdateOrderStatus(id: Long, status: String, replyTo: ActorRef[Response]) extends Command
+  case class ConfirmOrder(id: Long, replyTo: ActorRef[Response]) extends Command
   case class CancelOrder(id: Long, replyTo: ActorRef[Response]) extends Command
   case class PayOrder(id: Long, paymentMethod: String, token: String, replyTo: ActorRef[Response]) extends Command
+  case class ShipOrder(id: Long, replyTo: ActorRef[Response]) extends Command
+  case class CompleteOrder(id: Long, replyTo: ActorRef[Response]) extends Command
   case class GetOrderStats(replyTo: ActorRef[Response]) extends Command
   
   sealed trait Response
@@ -29,8 +33,11 @@ object OrderActor {
   case class OrderFound(order: OrderResponse) extends Response
   case class OrdersFound(orders: Seq[OrderResponse]) extends Response
   case class OrderUpdated(message: String) extends Response
+  case class OrderConfirmed(message: String) extends Response
   case class OrderCancelled(message: String) extends Response
   case class OrderPaid(paymentInfo: PaymentInfo) extends Response
+  case class OrderShipped(message: String) extends Response
+  case class OrderCompleted(message: String) extends Response
   case class StatsFound(stats: OrderStats) extends Response
   case class OrderError(message: String) extends Response
   
@@ -193,7 +200,8 @@ object OrderActor {
           val cancellation = for {
             orderOpt <- repository.findById(id)
             result <- orderOpt match {
-              case Some(order) if order.status == "pending" || order.status == "confirmed" =>
+              case Some(order) if order.status == "draft" || order.status == "created" || 
+                                  order.status == "paid" || order.status == "shipping" =>
                 for {
                   items <- repository.getOrderItems(id)
                   _ <- Future.sequence(items.map { item =>
@@ -218,21 +226,61 @@ object OrderActor {
           }
           Behaviors.same
           
+        case ConfirmOrder(id, replyTo) =>
+          val confirmation = for {
+            orderOpt <- repository.findById(id)
+            result <- orderOpt match {
+              case Some(order) if order.status == "draft" =>
+                for {
+                  items <- repository.getOrderItems(id)
+                  _ <- if (items.isEmpty) Future.failed(new Exception("Cannot confirm order with no items"))
+                       else Future.successful(())
+                  _ <- repository.updateStatus(id, "created")
+                } yield true
+              case Some(order) =>
+                Future.failed(new Exception(s"Cannot confirm order in ${order.status} status"))
+              case None =>
+                Future.failed(new Exception(s"Order $id not found"))
+            }
+          } yield result
+          
+          context.pipeToSelf(confirmation) {
+            case Success(_) =>
+              replyTo ! OrderConfirmed(s"Order $id confirmed successfully")
+              null
+            case Failure(ex) =>
+              replyTo ! OrderError(ex.getMessage)
+              null
+          }
+          Behaviors.same
+          
         case PayOrder(id, paymentMethod, token, replyTo) =>
           val paymentProcessing = for {
             orderOpt <- repository.findById(id)
             result <- orderOpt match {
-              case Some(order) if order.status == "pending" =>
-                for {
-                  paymentInfoOpt <- serviceClient.processPayment(id, order.totalAmount, paymentMethod, token)
-                  result <- paymentInfoOpt match {
-                    case Some(info) =>
-                      // Update order status to processing after successful payment initiation
-                      repository.updateStatus(id, "processing").map(_ => info)
-                    case None =>
-                      Future.failed(new Exception("Payment failed or rejected"))
+              case Some(order) if order.status == "created" && order.totalAmount > 0 =>
+                // Simulate payment with 80% success rate
+                val paymentSuccess = scala.util.Random.nextDouble() < 0.8
+                val paymentResult = if (paymentSuccess) {
+                  for {
+                    _ <- repository.updateStatus(id, "paid")
+                  } yield {
+                    val paymentInfo = PaymentInfo(
+                      id = java.util.UUID.randomUUID().toString.hashCode.toLong.abs,
+                      orderId = id,
+                      amount = order.totalAmount,
+                      status = "success"
+                    )
+                    // Auto-trigger shipping after successful payment
+                    context.self ! ShipOrder(id, context.system.ignoreRef)
+                    paymentInfo
                   }
-                } yield result
+                } else {
+                  Future.failed(new Exception("Payment failed (simulated failure)"))
+                }
+                paymentResult
+              case Some(order) if order.totalAmount <= 0 =>
+                Future.failed(new Exception("Cannot pay for order with zero amount"))
               case Some(order) =>
                 Future.failed(new Exception(s"Cannot pay for order in ${order.status} status"))
               case None =>
@@ -243,6 +291,57 @@ object OrderActor {
           context.pipeToSelf(paymentProcessing) {
             case Success(info) =>
               replyTo ! OrderPaid(info)
+              null
+            case Failure(ex) =>
+              replyTo ! OrderError(ex.getMessage)
+              null
+          }
+          Behaviors.same
+          
+        case ShipOrder(id, replyTo) =>
+          val shipping = for {
+            orderOpt <- repository.findById(id)
+            result <- orderOpt match {
+              case Some(order) if order.status == "paid" =>
+                repository.updateStatus(id, "shipping").map { _ =>
+                  // Simulate shipping process (1-3 seconds) - schedule completion
+                  val delay = (1000 + scala.util.Random.nextInt(2000)).milliseconds
+                  context.scheduleOnce(delay, context.self, CompleteOrder(id, context.system.ignoreRef))
+                  true
+                }
+              case Some(order) =>
+                Future.failed(new Exception(s"Cannot ship order in ${order.status} status"))
+              case None =>
+                Future.failed(new Exception(s"Order $id not found"))
+            }
+          } yield result
+          
+          context.pipeToSelf(shipping) {
+            case Success(_) =>
+              replyTo ! OrderShipped(s"Order $id is now being shipped")
+              null
+            case Failure(ex) =>
+              replyTo ! OrderError(ex.getMessage)
+              null
+          }
+          Behaviors.same
+          
+        case CompleteOrder(id, replyTo) =>
+          val completion = for {
+            orderOpt <- repository.findById(id)
+            result <- orderOpt match {
+              case Some(order) if order.status == "shipping" =>
+                repository.updateStatus(id, "completed").map(_ => true)
+              case Some(order) =>
+                Future.failed(new Exception(s"Cannot complete order in ${order.status} status"))
+              case None =>
+                Future.failed(new Exception(s"Order $id not found"))
+            }
+          } yield result
+          
+          context.pipeToSelf(completion) {
+            case Success(_) =>
+              replyTo ! OrderCompleted(s"Order $id completed successfully")
               null
             case Failure(ex) =>
               replyTo ! OrderError(ex.getMessage)

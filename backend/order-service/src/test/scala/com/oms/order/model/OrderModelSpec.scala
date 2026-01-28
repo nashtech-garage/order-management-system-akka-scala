@@ -12,7 +12,7 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
       id = Some(1L),
       customerId = 10L,
       createdBy = 20L,
-      status = "pending",
+      status = "draft",
       totalAmount = BigDecimal("100.00"),
       createdAt = now,
       updatedAt = None
@@ -29,7 +29,7 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
     response.customerId shouldBe 10L
     response.customerName shouldBe Some("John Doe")
     response.createdBy shouldBe 20L
-    response.status shouldBe "pending"
+    response.status shouldBe "draft"
     response.totalAmount shouldBe BigDecimal("100.00")
     response.items should have size 2
     response.createdAt shouldBe now
@@ -41,7 +41,7 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
       id = None,
       customerId = 10L,
       createdBy = 20L,
-      status = "pending",
+      status = "draft",
       totalAmount = BigDecimal("0.00"),
       createdAt = LocalDateTime.now()
     )
@@ -87,9 +87,9 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
     request.items should have size 2
   }
 
-  "Order" should "have default status of pending" in {
+  "Order" should "have default status of draft" in {
     val order = Order(customerId = 10L, createdBy = 20L)
-    order.status shouldBe "pending"
+    order.status shouldBe "draft"
   }
 
   it should "have default totalAmount of 0" in {
@@ -108,7 +108,7 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "support all valid statuses" in {
-    val statuses = Seq("pending", "confirmed", "processing", "shipped", "delivered", "cancelled")
+    val statuses = Seq("draft", "created", "paid", "shipping", "completed", "cancelled")
     statuses.foreach { status =>
       val order = Order(customerId = 10L, createdBy = 20L, status = status)
       order.status shouldBe status
@@ -136,8 +136,8 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
   }
 
   "UpdateOrderStatusRequest" should "be created with valid status" in {
-    val request = UpdateOrderStatusRequest("confirmed")
-    request.status shouldBe "confirmed"
+    val request = UpdateOrderStatusRequest("created")
+    request.status shouldBe "created"
   }
 
   "PayOrderRequest" should "be created with payment method" in {
@@ -156,13 +156,13 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
   "OrderResponse" should "include all order details" in {
     val now = LocalDateTime.now()
     val items = Seq(OrderItemResponse(1L, 101L, Some("Product 1"), 2, BigDecimal("25.00"), BigDecimal("50.00")))
-    val response = OrderResponse(1L, 10L, Some("John Doe"), 20L, "pending", BigDecimal("50.00"), items, now, None)
+    val response = OrderResponse(1L, 10L, Some("John Doe"), 20L, "draft", BigDecimal("50.00"), items, now, None)
 
     response.id shouldBe 1L
     response.customerId shouldBe 10L
     response.customerName shouldBe Some("John Doe")
     response.createdBy shouldBe 20L
-    response.status shouldBe "pending"
+    response.status shouldBe "draft"
     response.totalAmount shouldBe BigDecimal("50.00")
     response.items should have size 1
     response.createdAt shouldBe now
@@ -170,12 +170,12 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "handle None customerName" in {
-    val response = OrderResponse(1L, 10L, None, 20L, "pending", BigDecimal("50.00"), Seq.empty, LocalDateTime.now(), None)
+    val response = OrderResponse(1L, 10L, None, 20L, "draft", BigDecimal("50.00"), Seq.empty, LocalDateTime.now(), None)
     response.customerName shouldBe None
   }
 
   it should "handle empty items" in {
-    val response = OrderResponse(1L, 10L, Some("John Doe"), 20L, "pending", BigDecimal("0.00"), Seq.empty, LocalDateTime.now(), None)
+    val response = OrderResponse(1L, 10L, Some("John Doe"), 20L, "draft", BigDecimal("0.00"), Seq.empty, LocalDateTime.now(), None)
     response.items shouldBe empty
   }
 
@@ -185,7 +185,7 @@ class OrderModelSpec extends AnyFlatSpec with Matchers {
       OrderItemResponse(2L, 102L, Some("Product 2"), 1, BigDecimal("50.00"), BigDecimal("50.00")),
       OrderItemResponse(3L, 103L, Some("Product 3"), 3, BigDecimal("30.00"), BigDecimal("90.00"))
     )
-    val response = OrderResponse(1L, 10L, Some("John Doe"), 20L, "pending", BigDecimal("190.00"), items, LocalDateTime.now(), None)
+    val response = OrderResponse(1L, 10L, Some("John Doe"), 20L, "draft", BigDecimal("190.00"), items, LocalDateTime.now(), None)
     
     response.items should have size 3
     response.totalAmount shouldBe BigDecimal("190.00")

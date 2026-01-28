@@ -41,6 +41,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('@features/orders/order-list/order-list').then((m) => m.OrderList),
       },
+      {
+        path: 'create',
+        loadComponent: () =>
+          import('@features/orders/order-form/order-form').then((m) => m.OrderForm),
+      },
+      {
+        path: ':id',
+        loadComponent: () =>
+          import('@features/orders/order-detail/order-detail').then((m) => m.OrderDetail),
+      },
     ],
   },
   {

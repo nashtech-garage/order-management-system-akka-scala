@@ -6,6 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, Route}
+import akka.http.scaladsl.server.ExceptionHandler
 import com.oms.gateway.middleware.AuthMiddleware
 import spray.json._
 
@@ -125,7 +126,7 @@ class GatewayRoutes(
   }
   
   private def ordersRoutes: Route = pathPrefix("orders") {
-    optionalAuthenticate { _ =>
+    authenticate { _ =>
       proxyToService("order-service", "/orders")
     }
   }
@@ -187,8 +188,8 @@ class GatewayRoutes(
     }.recover { case _ => false }
   }
   
-  private implicit val exceptionHandler: akka.http.scaladsl.server.ExceptionHandler = 
-    akka.http.scaladsl.server.ExceptionHandler {
+  private implicit val exceptionHandler: ExceptionHandler = 
+    ExceptionHandler {
       case e: Exception =>
         extractLog { log =>
           log.error(e, "Gateway error")

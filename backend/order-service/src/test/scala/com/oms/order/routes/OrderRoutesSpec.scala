@@ -12,6 +12,7 @@ import com.oms.order.actor.OrderActor._
 import com.oms.order.client.PaymentInfo
 import com.oms.order.model._
 import com.oms.order.stream.OrderStats
+import com.oms.common.security.{JwtService, JwtUser}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -28,10 +29,10 @@ class OrderRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
     testKit.shutdownTestKit()
   }
 
-  // Helper to create a test Bearer token
+  // Helper to create a test JWT Bearer token
   def createTestToken(userId: Long): String = {
-    val tokenData = s"$userId:testuser:${System.currentTimeMillis()}"
-    Base64.getEncoder.encodeToString(tokenData.getBytes("UTF-8"))
+    val testUser = JwtUser(userId, "testuser", "test@example.com", "CUSTOMER")
+    JwtService.generateToken(testUser)
   }
 
   // Test actor that responds with predefined messages
@@ -45,6 +46,9 @@ class OrderRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
       case cmd: UpdateOrderStatus => cmd.replyTo ! response(cmd); Behaviors.same
       case cmd: CancelOrder => cmd.replyTo ! response(cmd); Behaviors.same
       case cmd: PayOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: ConfirmOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: ShipOrder => cmd.replyTo ! response(cmd); Behaviors.same
+      case cmd: CompleteOrder => cmd.replyTo ! response(cmd); Behaviors.same
       case cmd: GetOrderStats => cmd.replyTo ! response(cmd); Behaviors.same
     })
   }
@@ -290,6 +294,111 @@ class OrderRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest 
         Post("/orders/1/pay", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
           status shouldBe StatusCodes.BadRequest
           responseAs[String] should include("Payment declined")
+        }
+      }
+    }
+
+    "POST /orders/:id/confirm" should {
+      "confirm an order successfully" in {
+        val actor = createTestActor(_ => OrderConfirmed("Order confirmed successfully"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/confirm").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("confirmed")
+        }
+      }
+
+      "return 401 when no token provided" in {
+        val actor = createTestActor(_ => OrderError("No token"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Post("/orders/1/confirm") ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+
+      "return 400 when confirmation fails" in {
+        val actor = createTestActor(_ => OrderError("Cannot confirm order in paid status"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/confirm").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          responseAs[String] should include("Cannot confirm")
+        }
+      }
+    }
+
+    "POST /orders/:id/ship" should {
+      "ship an order successfully" in {
+        val actor = createTestActor(_ => OrderShipped("Order is now being shipped"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/ship").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("shipped")
+        }
+      }
+
+      "return 401 when no token provided" in {
+        val actor = createTestActor(_ => OrderError("No token"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Post("/orders/1/ship") ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+
+      "return 400 when shipping fails" in {
+        val actor = createTestActor(_ => OrderError("Cannot ship order in created status"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/ship").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          responseAs[String] should include("Cannot ship")
+        }
+      }
+    }
+
+    "POST /orders/:id/complete" should {
+      "complete an order successfully" in {
+        val actor = createTestActor(_ => OrderCompleted("Order completed successfully"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/complete").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.OK
+          responseAs[String] should include("completed")
+        }
+      }
+
+      "return 401 when no token provided" in {
+        val actor = createTestActor(_ => OrderError("No token"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        Post("/orders/1/complete") ~> routes ~> check {
+          handled shouldBe false
+        }
+      }
+
+      "return 400 when completion fails" in {
+        val actor = createTestActor(_ => OrderError("Cannot complete order in paid status"))
+        val routes = new OrderRoutes(actor)(testKit.system).routes
+        
+        val token = createTestToken(20L)
+        
+        Post("/orders/1/complete").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          responseAs[String] should include("Cannot complete")
         }
       }
     }
