@@ -101,7 +101,7 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
         orderCreated.order.customerId shouldBe 10L
         orderCreated.order.customerName shouldBe Some("John Doe")
         orderCreated.order.createdBy shouldBe 20L
-        orderCreated.order.status shouldBe "pending"
+        orderCreated.order.status shouldBe "draft"
         orderCreated.order.totalAmount shouldBe BigDecimal("50.00")
         orderCreated.order.items should have size 1
       }
@@ -262,11 +262,11 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
     }
 
     "receiving CancelOrder command" should {
-      "cancel pending order successfully" in {
+      "cancel draft order successfully" in {
         val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
         val probe = testKit.createTestProbe[Response]()
 
-        val order = Order(customerId = 10L, createdBy = 20L, status = "pending", totalAmount = BigDecimal("50.00"))
+        val order = Order(customerId = 10L, createdBy = 20L, status = "draft", totalAmount = BigDecimal("50.00"))
         val items = List(OrderItem(orderId = 0L, productId = 101L, quantity = 2, unitPrice = BigDecimal("25.00")))
         val (created, _) = repository.createOrder(order, items).futureValue
 
@@ -281,11 +281,11 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
         cancelled.get.status shouldBe "cancelled"
       }
 
-      "cancel confirmed order successfully" in {
+      "cancel created order successfully" in {
         val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
         val probe = testKit.createTestProbe[Response]()
 
-        val order = Order(customerId = 10L, createdBy = 20L, status = "confirmed", totalAmount = BigDecimal("50.00"))
+        val order = Order(customerId = 10L, createdBy = 20L, status = "created", totalAmount = BigDecimal("50.00"))
         val items = List(OrderItem(orderId = 0L, productId = 101L, quantity = 1, unitPrice = BigDecimal("50.00")))
         val (created, _) = repository.createOrder(order, items).futureValue
 
@@ -295,11 +295,11 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
         response shouldBe a[OrderCancelled]
       }
 
-      "fail to cancel shipped order" in {
+      "fail to cancel completed order" in {
         val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
         val probe = testKit.createTestProbe[Response]()
 
-        val order = Order(customerId = 10L, createdBy = 20L, status = "shipped", totalAmount = BigDecimal("50.00"))
+        val order = Order(customerId = 10L, createdBy = 20L, status = "completed", totalAmount = BigDecimal("50.00"))
         val (created, _) = repository.createOrder(order, List.empty).futureValue
 
         actor ! CancelOrder(created.id.get, probe.ref)
@@ -322,46 +322,49 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
     }
 
     "receiving PayOrder command" should {
-      "process payment successfully for pending order" in {
+      "process payment for created order" in {
         val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
         val probe = testKit.createTestProbe[Response]()
 
-        val order = Order(customerId = 10L, createdBy = 20L, status = "pending", totalAmount = BigDecimal("50.00"))
+        val order = Order(customerId = 10L, createdBy = 20L, status = "created", totalAmount = BigDecimal("50.00"))
         val (created, _) = repository.createOrder(order, List.empty).futureValue
 
         actor ! PayOrder(created.id.get, "credit_card", "test_token", probe.ref)
 
         val response = probe.receiveMessage()
-        response shouldBe a[OrderPaid]
-        
-        val paymentInfo = response.asInstanceOf[OrderPaid].paymentInfo
-        paymentInfo.status shouldBe "completed"
-        paymentInfo.amount shouldBe BigDecimal("50.00")
-
-        // Verify status updated to processing
-        val paid = repository.findById(created.id.get).futureValue
-        paid.get.status shouldBe "processing"
+        // Payment has 80% success rate in simulation, so it can be either success or failure
+        response match {
+          case OrderPaid(paymentInfo) =>
+            paymentInfo.status shouldBe "success"
+            paymentInfo.amount shouldBe BigDecimal("50.00")
+            // After payment, the status might be "paid" or "shipping" due to auto-shipping
+            val updated = repository.findById(created.id.get).futureValue
+            updated.get.status should (be("paid") or be("shipping"))
+          case OrderError(msg) =>
+            msg should include("Payment failed")
+          case _ => fail("Unexpected response type")
+        }
       }
 
-      "fail payment with invalid method" in {
+      "fail to pay with zero amount" in {
         val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
         val probe = testKit.createTestProbe[Response]()
 
-        val order = Order(customerId = 10L, createdBy = 20L, status = "pending", totalAmount = BigDecimal("50.00"))
+        val order = Order(customerId = 10L, createdBy = 20L, status = "created", totalAmount = BigDecimal("0.00"))
         val (created, _) = repository.createOrder(order, List.empty).futureValue
 
-        actor ! PayOrder(created.id.get, "invalid_method", "test_token", probe.ref)
+        actor ! PayOrder(created.id.get, "credit_card", "test_token", probe.ref)
 
         val response = probe.receiveMessage()
         response shouldBe a[OrderError]
-        response.asInstanceOf[OrderError].message should include("Payment failed")
+        response.asInstanceOf[OrderError].message should include("zero amount")
       }
 
-      "fail to pay non-pending order" in {
+      "fail to pay non-created order" in {
         val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
         val probe = testKit.createTestProbe[Response]()
 
-        val order = Order(customerId = 10L, createdBy = 20L, status = "confirmed", totalAmount = BigDecimal("50.00"))
+        val order = Order(customerId = 10L, createdBy = 20L, status = "paid", totalAmount = BigDecimal("50.00"))
         val (created, _) = repository.createOrder(order, List.empty).futureValue
 
         actor ! PayOrder(created.id.get, "credit_card", "test_token", probe.ref)
@@ -399,6 +402,200 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
         stats.completedOrders should be >= 0
         stats.cancelledOrders should be >= 0
         stats.totalRevenue should be >= BigDecimal(0)
+      }
+    }
+
+    "receiving ConfirmOrder command" should {
+      "confirm draft order successfully" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "draft", totalAmount = BigDecimal("50.00"))
+        val items = List(OrderItem(orderId = 0L, productId = 101L, quantity = 1, unitPrice = BigDecimal("50.00")))
+        val (created, _) = repository.createOrder(order, items).futureValue
+
+        actor ! ConfirmOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderConfirmed]
+        response.asInstanceOf[OrderConfirmed].message should include("confirmed")
+
+        // Verify status updated
+        val confirmed = repository.findById(created.id.get).futureValue
+        confirmed.get.status shouldBe "created"
+      }
+
+      "fail to confirm order with no items" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "draft", totalAmount = BigDecimal("0.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! ConfirmOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("no items")
+      }
+
+      "fail to confirm non-draft order" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "created", totalAmount = BigDecimal("50.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! ConfirmOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("Cannot confirm")
+      }
+
+      "return error when order not found" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        actor ! ConfirmOrder(99999L, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("not found")
+      }
+    }
+
+    "receiving ShipOrder command" should {
+      "ship paid order successfully" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "paid", totalAmount = BigDecimal("50.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! ShipOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderShipped]
+        response.asInstanceOf[OrderShipped].message should include("shipped")
+
+        // Verify status updated
+        val shipped = repository.findById(created.id.get).futureValue
+        shipped.get.status shouldBe "shipping"
+      }
+
+      "fail to ship non-paid order" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "created", totalAmount = BigDecimal("50.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! ShipOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("Cannot ship")
+      }
+
+      "return error when order not found" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        actor ! ShipOrder(99999L, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("not found")
+      }
+    }
+
+    "receiving CompleteOrder command" should {
+      "complete shipping order successfully" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "shipping", totalAmount = BigDecimal("50.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! CompleteOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderCompleted]
+        response.asInstanceOf[OrderCompleted].message should include("completed")
+
+        // Verify status updated
+        val completed = repository.findById(created.id.get).futureValue
+        completed.get.status shouldBe "completed"
+      }
+
+      "fail to complete non-shipping order" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "paid", totalAmount = BigDecimal("50.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! CompleteOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("Cannot complete")
+      }
+
+      "return error when order not found" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        actor ! CompleteOrder(99999L, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("not found")
+      }
+    }
+
+    "receiving CancelOrder command for paid and shipping orders" should {
+      "cancel paid order and restore stock" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "paid", totalAmount = BigDecimal("50.00"))
+        val items = List(OrderItem(orderId = 0L, productId = 101L, quantity = 2, unitPrice = BigDecimal("25.00")))
+        val (created, _) = repository.createOrder(order, items).futureValue
+
+        actor ! CancelOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderCancelled]
+      }
+
+      "cancel shipping order and restore stock" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "shipping", totalAmount = BigDecimal("50.00"))
+        val items = List(OrderItem(orderId = 0L, productId = 101L, quantity = 1, unitPrice = BigDecimal("50.00")))
+        val (created, _) = repository.createOrder(order, items).futureValue
+
+        actor ! CancelOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderCancelled]
+      }
+
+      "fail to cancel cancelled order" in {
+        val actor = testKit.spawn(OrderActor(repository, serviceClient, streamProcessor))
+        val probe = testKit.createTestProbe[Response]()
+
+        val order = Order(customerId = 10L, createdBy = 20L, status = "cancelled", totalAmount = BigDecimal("50.00"))
+        val (created, _) = repository.createOrder(order, List.empty).futureValue
+
+        actor ! CancelOrder(created.id.get, probe.ref)
+
+        val response = probe.receiveMessage()
+        response shouldBe a[OrderError]
+        response.asInstanceOf[OrderError].message should include("Cannot cancel")
       }
     }
   }

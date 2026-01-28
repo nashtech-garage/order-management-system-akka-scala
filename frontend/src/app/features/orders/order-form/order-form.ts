@@ -78,7 +78,7 @@ export class OrderForm implements OnInit {
     }
   }
 
-  onProductChange(index: number) {
+  onProductChange() {
     this.updateTotal();
   }
 
@@ -113,7 +113,7 @@ export class OrderForm implements OnInit {
     const formValue = this.orderForm.value;
     const orderRequest = {
       customerId: parseInt(formValue.customerId),
-      items: formValue.items.map((item: any) => ({
+      items: formValue.items.map((item: { productId: string; quantity: string }) => ({
         productId: parseInt(item.productId),
         quantity: parseInt(item.quantity),
       })),

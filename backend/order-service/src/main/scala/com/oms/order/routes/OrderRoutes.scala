@@ -166,31 +166,37 @@ class OrderRoutes(orderActor: ActorRef[OrderActor.Command])(implicit system: Act
       } ~
       path(LongNumber / "confirm") { id =>
         post {
-          val response = orderActor.ask(ref => ConfirmOrder(id, ref))
-          onSuccess(response) {
-            case OrderConfirmed(msg) => complete(StatusCodes.OK, Map("message" -> msg))
-            case OrderError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
-            case _ => complete(StatusCodes.InternalServerError)
+          extractToken { _ =>
+            val response = orderActor.ask(ref => ConfirmOrder(id, ref))
+            onSuccess(response) {
+              case OrderConfirmed(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+              case OrderError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
           }
         }
       } ~
       path(LongNumber / "ship") { id =>
         post {
-          val response = orderActor.ask(ref => ShipOrder(id, ref))
-          onSuccess(response) {
-            case OrderShipped(msg) => complete(StatusCodes.OK, Map("message" -> msg))
-            case OrderError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
-            case _ => complete(StatusCodes.InternalServerError)
+          extractToken { _ =>
+            val response = orderActor.ask(ref => ShipOrder(id, ref))
+            onSuccess(response) {
+              case OrderShipped(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+              case OrderError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
           }
         }
       } ~
       path(LongNumber / "complete") { id =>
         post {
-          val response = orderActor.ask(ref => CompleteOrder(id, ref))
-          onSuccess(response) {
-            case OrderCompleted(msg) => complete(StatusCodes.OK, Map("message" -> msg))
-            case OrderError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
-            case _ => complete(StatusCodes.InternalServerError)
+          extractToken { _ =>
+            val response = orderActor.ask(ref => CompleteOrder(id, ref))
+            onSuccess(response) {
+              case OrderCompleted(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+              case OrderError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
           }
         }
       }

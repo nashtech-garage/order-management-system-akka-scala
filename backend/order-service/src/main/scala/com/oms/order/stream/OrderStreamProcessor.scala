@@ -58,8 +58,8 @@ class OrderStreamProcessor(
   def calculateStats(): Future[OrderStats] = {
     for {
       total <- repository.count()
-      pending <- repository.countByStatus("pending")
-      completed <- repository.countByStatus("delivered")
+      pending <- repository.countByStatus("draft")
+      completed <- repository.countByStatus("completed")
       cancelled <- repository.countByStatus("cancelled")
       revenue <- repository.getTotalSales()
     } yield OrderStats(total, pending, completed, cancelled, revenue)

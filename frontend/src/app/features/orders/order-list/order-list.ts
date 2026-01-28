@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { OrderService } from '../order.service';
-import { Order, OrderStatus } from '@shared/models/order.model';
+import { Order } from '@shared/models/order.model';
 
 @Component({
   selector: 'app-order-list',
@@ -32,7 +32,7 @@ export class OrderList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    const params: any = {
+    const params: { offset: number; limit: number; status?: string; customerId?: number } = {
       offset: this.offset(),
       limit: this.limit(),
     };

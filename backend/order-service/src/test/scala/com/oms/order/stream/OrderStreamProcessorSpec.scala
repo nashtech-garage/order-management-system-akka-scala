@@ -196,8 +196,8 @@ class OrderStreamProcessorSpec extends AnyWordSpec with Matchers with ScalaFutur
     "calculating statistics" should {
       "return correct order counts" in {
         // Create test orders with different statuses
-        repository.createOrder(Order(customerId = 10L, createdBy = 1L, status = "pending", totalAmount = BigDecimal("50.00")), List.empty).futureValue
-        repository.createOrder(Order(customerId = 11L, createdBy = 1L, status = "delivered", totalAmount = BigDecimal("75.00")), List.empty).futureValue
+        repository.createOrder(Order(customerId = 10L, createdBy = 1L, status = "draft", totalAmount = BigDecimal("50.00")), List.empty).futureValue
+        repository.createOrder(Order(customerId = 11L, createdBy = 1L, status = "completed", totalAmount = BigDecimal("75.00")), List.empty).futureValue
         repository.createOrder(Order(customerId = 12L, createdBy = 1L, status = "cancelled", totalAmount = BigDecimal("25.00")), List.empty).futureValue
 
         val stats = streamProcessor.calculateStats().futureValue
@@ -211,7 +211,7 @@ class OrderStreamProcessorSpec extends AnyWordSpec with Matchers with ScalaFutur
 
       "calculate total revenue excluding cancelled orders" in {
         val customerId = System.currentTimeMillis() % 10000
-        repository.createOrder(Order(customerId = customerId, createdBy = 1L, status = "delivered", totalAmount = BigDecimal("100.00")), List.empty).futureValue
+        repository.createOrder(Order(customerId = customerId, createdBy = 1L, status = "completed", totalAmount = BigDecimal("100.00")), List.empty).futureValue
         repository.createOrder(Order(customerId = customerId + 1, createdBy = 1L, status = "cancelled", totalAmount = BigDecimal("50.00")), List.empty).futureValue
 
         val stats = streamProcessor.calculateStats().futureValue
@@ -234,7 +234,7 @@ class OrderStreamProcessorSpec extends AnyWordSpec with Matchers with ScalaFutur
 
     "streaming orders by status" should {
       "return orders with specific status" in {
-        val status = "processing"
+        val status = "paid"
         repository.createOrder(Order(customerId = 10L, createdBy = 1L, status = status, totalAmount = BigDecimal("50.00")), List.empty).futureValue
         repository.createOrder(Order(customerId = 11L, createdBy = 1L, status = status, totalAmount = BigDecimal("75.00")), List.empty).futureValue
 
@@ -257,19 +257,19 @@ class OrderStreamProcessorSpec extends AnyWordSpec with Matchers with ScalaFutur
       }
 
       "handle different statuses" in {
-        repository.createOrder(Order(customerId = 10L, createdBy = 1L, status = "shipped", totalAmount = BigDecimal("50.00")), List.empty).futureValue
-        repository.createOrder(Order(customerId = 11L, createdBy = 1L, status = "pending", totalAmount = BigDecimal("75.00")), List.empty).futureValue
+        repository.createOrder(Order(customerId = 10L, createdBy = 1L, status = "shipping", totalAmount = BigDecimal("50.00")), List.empty).futureValue
+        repository.createOrder(Order(customerId = 11L, createdBy = 1L, status = "draft", totalAmount = BigDecimal("75.00")), List.empty).futureValue
 
-        val shippedOrders = streamProcessor.streamOrdersByStatus("shipped")
+        val shippedOrders = streamProcessor.streamOrdersByStatus("shipping")
           .runWith(Sink.seq)
           .futureValue
 
-        val pendingOrders = streamProcessor.streamOrdersByStatus("pending")
+        val pendingOrders = streamProcessor.streamOrdersByStatus("draft")
           .runWith(Sink.seq)
           .futureValue
 
-        shippedOrders.foreach(_.status shouldBe "shipped")
-        pendingOrders.foreach(_.status shouldBe "pending")
+        shippedOrders.foreach(_.status shouldBe "shipping")
+        pendingOrders.foreach(_.status shouldBe "draft")
       }
     }
 

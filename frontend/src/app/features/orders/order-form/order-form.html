@@ -74,7 +74,7 @@
                 <select
                   [id]="'product-' + i"
                   formControlName="productId"
-                  (change)="onProductChange(i)"
+                  (change)="onProductChange()"
                   [class.error]="item.get('productId')?.invalid && item.get('productId')?.touched"
                 >
                   <option value="">-- Select a Product --</option>
