@@ -44,40 +44,22 @@ The system employs a **Database-per-Service** pattern using a **PostgreSQL Clust
 Each microservice implements specific architectural patterns based on its domain requirements:
 
 #### User Service
-- **Patterns Applied**: 
-  - *[To be documented: e.g., Repository Pattern, Actor Model, etc.]*
-- **Key Responsibilities**: Authentication, authorization, user profile management
-- **Data Model**: *[To be documented]*
+ ![alt text](diagram-export-1-28-2026-10_11_57-AM.png)
 
 #### Customer Service
-- **Patterns Applied**: 
-  - *[To be documented: e.g., Repository Pattern, CQRS, etc.]*
-- **Key Responsibilities**: Customer profile management, address management
-- **Data Model**: *[To be documented]*
+ ![alt text](diagram-export-1-28-2026-10_13_08-AM.png)
 
 #### Product Service
-- **Patterns Applied**: 
-  - *[To be documented: e.g., Repository Pattern, Event Sourcing, etc.]*
-- **Key Responsibilities**: Product catalog, inventory management, category management
-- **Data Model**: *[To be documented]*
+ ![alt text](diagram-export-1-28-2026-10_13_41-AM.png)
 
 #### Order Service
-- **Patterns Applied**: 
-  - *[To be documented: e.g., Saga Pattern, Event Sourcing, CQRS, etc.]*
-- **Key Responsibilities**: Order lifecycle management, order state transitions
-- **Data Model**: *[To be documented]*
+![alt text](diagram-export-1-28-2026-10_14_11-AM.png)
 
 #### Payment Service
-- **Patterns Applied**: 
-  - *[To be documented: e.g., Saga Pattern, Idempotency Pattern, etc.]*
-- **Key Responsibilities**: Payment processing, transaction management, refunds
-- **Data Model**: *[To be documented]*
+![alt text](diagram-export-1-28-2026-10_55_18-AM.png)
 
 #### Report Service
-- **Patterns Applied**: 
-  - *[To be documented: e.g., CQRS, Materialized View Pattern, etc.]*
-- **Key Responsibilities**: Analytics, business intelligence, reporting
-- **Data Model**: *[To be documented]*
+![alt text](diagram-export-1-28-2026-10_56_26-AM.png)
 
 ## 📦 Project Structure
 
@@ -894,13 +876,17 @@ sbt coverageAggregate
 ```
 
 **Coverage Report Locations:**
-- User Service: `backend/user-service/target/scala-2.13/scoverage-report/index.html`
-- Customer Service: `backend/customer-service/target/scala-2.13/scoverage-report/index.html`
-- Product Service: `backend/product-service/target/scala-2.13/scoverage-report/index.html`
+- User Service: 
+![alt text](image-2.png)
+- Customer Service: 
+![alt text](image-3.png)
+- Product Service: 
+![alt text](image-4.png)
 - Order Service: `backend/order-service/target/scala-2.13/scoverage-report/index.html`
 - Payment Service: `backend/payment-service/target/scala-2.13/scoverage-report/index.html`
 - Report Service: `backend/report-service/target/scala-2.13/scoverage-report/index.html`
-- API Gateway: `backend/api-gateway/target/scala-2.13/scoverage-report/index.html`
+- API Gateway: 
+![alt text](image-1.png)
 - Common Module: `backend/common/target/scala-2.13/scoverage-report/index.html`
 - **Aggregated Report**: `backend/target/scala-2.13/scoverage-report/index.html`
 
