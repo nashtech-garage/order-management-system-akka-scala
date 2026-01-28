@@ -6,11 +6,36 @@ case class Order(
   id: Option[Long] = None,
   customerId: Long,
   createdBy: Long, // User ID who created the order
-  status: String = "pending", // pending, confirmed, processing, shipped, delivered, cancelled
+  status: String = "draft", // draft, created, paid, shipping, completed, cancelled
   totalAmount: BigDecimal = BigDecimal(0),
   createdAt: LocalDateTime = LocalDateTime.now(),
   updatedAt: Option[LocalDateTime] = None
 )
+
+object OrderStatus {
+  val Draft = "draft"
+  val Created = "created"
+  val Paid = "paid"
+  val Shipping = "shipping"
+  val Completed = "completed"
+  val Cancelled = "cancelled"
+  
+  val AllStatuses = Seq(Draft, Created, Paid, Shipping, Completed, Cancelled)
+  
+  def isValidTransition(from: String, to: String): Boolean = {
+    (from, to) match {
+      case (Draft, Created) => true
+      case (Created, Paid) => true
+      case (Paid, Shipping) => true
+      case (Shipping, Completed) => true
+      case (Draft, Cancelled) => true
+      case (Created, Cancelled) => true
+      case (Paid, Cancelled) => true
+      case (Shipping, Cancelled) => true
+      case _ => false
+    }
+  }
+}
 
 case class OrderItem(
   id: Option[Long] = None,
@@ -24,6 +49,8 @@ case class OrderItemRequest(productId: Long, quantity: Int)
 case class CreateOrderRequest(customerId: Long, items: List[OrderItemRequest])
 case class UpdateOrderStatusRequest(status: String)
 case class PayOrderRequest(paymentMethod: String)
+case class ConfirmOrderRequest()
+case class ShipOrderRequest()
 
 case class OrderItemResponse(
   id: Long,

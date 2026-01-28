@@ -25,6 +25,7 @@ trait ProductJsonFormats extends JsonSupport {
   implicit val updateProductRequestFormat: RootJsonFormat[UpdateProductRequest] = jsonFormat6(UpdateProductRequest)
   implicit val createCategoryRequestFormat: RootJsonFormat[CreateCategoryRequest] = jsonFormat2(CreateCategoryRequest)
   implicit val updateStockRequestFormat: RootJsonFormat[UpdateStockRequest] = jsonFormat1(UpdateStockRequest)
+  implicit val adjustStockRequestFormat: RootJsonFormat[AdjustStockRequest] = jsonFormat1(AdjustStockRequest)
   implicit val categoryFormat: RootJsonFormat[Category] = jsonFormat3(Category)
   implicit val productResponseFormat: RootJsonFormat[ProductResponse] = jsonFormat9(ProductResponse.apply)
 }
@@ -137,6 +138,18 @@ class ProductRoutes(productActor: ActorRef[ProductActor.Command], uploadDir: Str
         put {
           entity(as[UpdateStockRequest]) { request =>
             val response = productActor.ask(ref => UpdateStock(id, request.quantity, ref))
+            onSuccess(response) {
+              case StockUpdated(msg) => complete(StatusCodes.OK, Map("message" -> msg))
+              case ProductError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))
+              case _ => complete(StatusCodes.InternalServerError)
+            }
+          }
+        }
+      } ~
+      path(LongNumber / "stock" / "adjust") { id =>
+        put {
+          entity(as[AdjustStockRequest]) { request =>
+            val response = productActor.ask(ref => AdjustStock(id, request.adjustment, ref))
             onSuccess(response) {
               case StockUpdated(msg) => complete(StatusCodes.OK, Map("message" -> msg))
               case ProductError(msg) => complete(StatusCodes.BadRequest, Map("error" -> msg))

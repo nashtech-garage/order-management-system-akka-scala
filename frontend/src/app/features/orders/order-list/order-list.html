@@ -1,0 +1,176 @@
+<div class="order-list-container">
+  <div class="header">
+    <h1>Orders Management</h1>
+    <button class="btn-primary" (click)="navigateToCreate()">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Create Order
+    </button>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label for="status-filter">Status:</label>
+      <select id="status-filter" [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+        <option value="">All Statuses</option>
+        <option value="draft">Draft</option>
+        <option value="created">Created</option>
+        <option value="paid">Paid</option>
+        <option value="shipping">Shipping</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="customer-filter">Customer ID:</label>
+      <input
+        id="customer-filter"
+        type="number"
+        [(ngModel)]="selectedCustomerId"
+        (change)="onFilterChange()"
+        placeholder="Filter by customer"
+      />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Loading orders...</div>
+  } @else if (error()) {
+    <div class="error">{{ error() }}</div>
+  } @else {
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Total Amount</th>
+            <th>Items</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.id) {
+            <tr>
+              <td>#{{ order.id }}</td>
+              <td>{{ order.customerName || 'Customer #' + order.customerId }}</td>
+              <td>
+                <span class="status-badge" [class]="'status-' + order.status">
+                  {{ order.status }}
+                </span>
+              </td>
+              <td>${{ order.totalAmount | number: '1.2-2' }}</td>
+              <td>{{ order.items.length }} items</td>
+              <td>{{ formatDate(order.createdAt) }}</td>
+              <td class="actions">
+                <button
+                  class="btn-action btn-view"
+                  (click)="viewOrder(order.id)"
+                  title="View Details"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                @if (order.status === 'draft') {
+                  <button
+                    class="btn-action btn-confirm"
+                    (click)="confirmOrder(order.id)"
+                    title="Confirm Order"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                }
+                @if (order.status === 'created') {
+                  <button
+                    class="btn-action btn-pay"
+                    (click)="payOrder(order.id)"
+                    title="Process Payment"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                      <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                  </button>
+                }
+                @if (order.status !== 'completed' && order.status !== 'cancelled') {
+                  <button
+                    class="btn-action btn-cancel"
+                    (click)="cancelOrder(order.id)"
+                    title="Cancel Order"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty-message">No orders found</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="btn-pagination" [disabled]="offset() === 0" (click)="previousPage()">
+        Previous
+      </button>
+      <span>Page {{ currentPage() }}</span>
+      <button class="btn-pagination" [disabled]="orders().length < limit()" (click)="nextPage()">
+        Next
+      </button>
+    </div>
+  }
+</div>

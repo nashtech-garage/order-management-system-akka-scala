@@ -9,7 +9,12 @@
 
     <div class="nav-section">
       <h3 class="nav-title">Orders</h3>
-      <a routerLink="/orders" routerLinkActive="active" class="nav-item">
+      <a
+        routerLink="/orders"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item"
+      >
         <span>📦</span> All Orders
       </a>
       <a routerLink="/orders/create" routerLinkActive="active" class="nav-item">

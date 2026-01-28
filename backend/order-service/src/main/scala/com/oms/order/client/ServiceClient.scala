@@ -72,8 +72,8 @@ class ServiceClient(
   def adjustProductStock(productId: Long, adjustment: Int): Future[Boolean] = {
     val request = HttpRequest(
       method = HttpMethods.PUT,
-      uri = s"$productServiceUrl/products/$productId/stock",
-      entity = HttpEntity(ContentTypes.`application/json`, s"""{"quantity": $adjustment}""")
+      uri = s"$productServiceUrl/products/$productId/stock/adjust",
+      entity = HttpEntity(ContentTypes.`application/json`, s"""{"adjustment": $adjustment}""")
     )
     
     http.singleRequest(request).flatMap { response =>
