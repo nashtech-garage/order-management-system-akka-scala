@@ -10,6 +10,7 @@ CREATE DATABASE oms_customers;
 CREATE DATABASE oms_products;
 CREATE DATABASE oms_orders;
 CREATE DATABASE oms_payments;
+CREATE DATABASE oms_reports;
 
 -- Users Database
 \c oms_users;

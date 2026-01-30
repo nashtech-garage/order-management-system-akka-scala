@@ -1,0 +1,198 @@
+<div class="reports-dashboard">
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1 class="dashboard-title">
+        <span class="icon">📊</span>
+        Reports Dashboard
+      </h1>
+      <p class="dashboard-subtitle">
+        Comprehensive analytics and insights for your business
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        class="btn-generate"
+        (click)="generateReport()"
+        [disabled]="generating"
+      >
+        <span class="btn-icon">{{ generating ? '⏳' : '✨' }}</span>
+        {{ generating ? 'Generating...' : 'Generate Report' }}
+      </button>
+      <a routerLink="/reports/list" class="btn-secondary">
+        <span class="btn-icon">📋</span>
+        View All Reports
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading dashboard data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <span class="error-icon">⚠️</span>
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="loadDashboardData()">Retry</button>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading && !error" class="dashboard-content">
+    <!-- Latest Report Summary -->
+    <section class="latest-report-section" *ngIf="latestReport">
+      <div class="section-header">
+        <h2>Latest Report</h2>
+        <span class="report-date">{{ formatDate(latestReport.reportDate) }}</span>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card primary">
+          <div class="metric-icon">💰</div>
+          <div class="metric-content">
+            <p class="metric-label">Total Revenue</p>
+            <h3 class="metric-value">
+              {{ formatCurrency(latestReport.totalRevenue) }}
+            </h3>
+          </div>
+          <div class="metric-trend positive">
+            <span>↑</span>
+          </div>
+        </div>
+
+        <div class="metric-card success">
+          <div class="metric-icon">📦</div>
+          <div class="metric-content">
+            <p class="metric-label">Total Orders</p>
+            <h3 class="metric-value">{{ latestReport.totalOrders }}</h3>
+          </div>
+          <div class="metric-trend positive">
+            <span>↑</span>
+          </div>
+        </div>
+
+        <div class="metric-card info">
+          <div class="metric-icon">📈</div>
+          <div class="metric-content">
+            <p class="metric-label">Average Order Value</p>
+            <h3 class="metric-value">
+              {{ formatCurrency(latestReport.averageOrderValue) }}
+            </h3>
+          </div>
+        </div>
+
+        <div class="metric-card warning">
+          <div class="metric-icon">📅</div>
+          <div class="metric-content">
+            <p class="metric-label">Report Date</p>
+            <h3 class="metric-value">{{ formatDate(latestReport.reportDate) }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Status Breakdown -->
+      <div class="status-breakdown">
+        <h3 class="breakdown-title">Orders by Status</h3>
+        <div class="status-grid">
+          <div
+            *ngFor="let status of getOrderStatusKeys()"
+            class="status-item"
+            [class]="'status-' + status"
+          >
+            <div class="status-label">{{ status | titlecase }}</div>
+            <div class="status-count">
+              {{ latestReport.ordersByStatus[status] }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard Summary -->
+    <section class="summary-section" *ngIf="dashboardSummary">
+      <div class="section-header">
+        <h2>Performance Overview</h2>
+        <span class="period-label">Last 7 Days</span>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <h4>Top Products</h4>
+          <div class="product-list">
+            <div
+              *ngFor="let product of dashboardSummary.topProducts; let i = index"
+              class="product-item"
+            >
+              <span class="rank">{{ i + 1 }}</span>
+              <div class="product-info">
+                <p class="product-name">{{ product.productName }}</p>
+                <p class="product-stats">
+                  {{ product.totalQuantitySold }} sold •
+                  {{ formatCurrency(product.totalRevenue) }}
+                </p>
+              </div>
+            </div>
+            <div *ngIf="dashboardSummary.topProducts.length === 0" class="empty-state">
+              No product data available
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <h4>Top Customers</h4>
+          <div class="customer-list">
+            <div
+              *ngFor="let customer of dashboardSummary.topCustomers; let i = index"
+              class="customer-item"
+            >
+              <span class="rank">{{ i + 1 }}</span>
+              <div class="customer-info">
+                <p class="customer-name">{{ customer.customerName }}</p>
+                <p class="customer-stats">
+                  {{ customer.totalOrders }} orders •
+                  {{ formatCurrency(customer.totalSpent) }}
+                </p>
+              </div>
+            </div>
+            <div *ngIf="dashboardSummary.topCustomers.length === 0" class="empty-state">
+              No customer data available
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Daily Stats Chart -->
+    <section class="chart-section" *ngIf="dailyStats.length > 0">
+      <div class="section-header">
+        <h2>Revenue Trend</h2>
+        <span class="period-label">Last 30 Days</span>
+      </div>
+      <div class="chart-container">
+        <div class="simple-chart">
+          <div *ngFor="let stat of dailyStats" class="chart-bar">
+            <div
+              class="bar"
+              [style.height.%]="(stat.revenue / getMaxRevenue()) * 100"
+              [title]="formatDate(stat.date) + ': ' + formatCurrency(stat.revenue)"
+            ></div>
+            <span class="bar-label">{{ stat.date.substring(5) }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty State -->
+    <div *ngIf="!latestReport && !dashboardSummary" class="empty-dashboard">
+      <div class="empty-icon">📊</div>
+      <h3>No Reports Available</h3>
+      <p>Generate your first report to see analytics and insights</p>
+      <button class="btn-generate-large" (click)="generateReport()">
+        <span class="btn-icon">✨</span>
+        Generate First Report
+      </button>
+    </div>
+  </div>
+</div>

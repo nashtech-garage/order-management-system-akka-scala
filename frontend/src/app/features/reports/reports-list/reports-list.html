@@ -1,0 +1,105 @@
+<div class="reports-list">
+    <div class="list-header">
+        <div class="header-content">
+            <h1 class="list-title">
+                <span class="icon">📋</span>
+                All Reports
+            </h1>
+            <p class="list-subtitle">Browse and filter historical reports</p>
+        </div>
+        <a routerLink="/reports" class="btn-back">
+            <span class="btn-icon">←</span>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="startDate">Start Date</label>
+            <input type="date" id="startDate" [(ngModel)]="startDate" class="filter-input" />
+        </div>
+        <div class="filter-group">
+            <label for="endDate">End Date</label>
+            <input type="date" id="endDate" [(ngModel)]="endDate" class="filter-input" />
+        </div>
+        <div class="filter-actions">
+            <button class="btn-apply" (click)="applyFilters()">Apply Filters</button>
+            <button class="btn-clear" (click)="clearFilters()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-container">
+        <div class="spinner"></div>
+        <p>Loading reports...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="error-container">
+        <span class="error-icon">⚠️</span>
+        <p>{{ error }}</p>
+        <button class="btn-retry" (click)="loadReports()">Retry</button>
+    </div>
+
+    <!-- Reports Table -->
+    <div *ngIf="!loading && !error" class="reports-table-container">
+        <div *ngIf="reports.length === 0" class="empty-state">
+            <div class="empty-icon">📊</div>
+            <h3>No Reports Found</h3>
+            <p>Try adjusting your filters or generate a new report</p>
+            <a routerLink="/reports" class="btn-generate">Generate Report</a>
+        </div>
+
+        <table *ngIf="reports.length > 0" class="reports-table">
+            <thead>
+                <tr>
+                    <th>Report Date</th>
+                    <th>Total Orders</th>
+                    <th>Total Revenue</th>
+                    <th>Avg Order Value</th>
+                    <th>Generated At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let report of reports" class="report-row">
+                    <td class="report-date">
+                        <span class="date-icon">📅</span>
+                        {{ formatDate(report.reportDate) }}
+                    </td>
+                    <td class="orders-count">
+                        <span class="count-badge">{{ report.totalOrders }}</span>
+                    </td>
+                    <td class="revenue">
+                        <span class="revenue-value">{{ formatCurrency(report.totalRevenue) }}</span>
+                    </td>
+                    <td class="avg-value">
+                        {{ formatCurrency(report.averageOrderValue) }}
+                    </td>
+                    <td class="generated-at">
+                        {{ formatDate(report.generatedAt) }}
+                    </td>
+                    <td class="actions">
+                        <a [routerLink]="['/reports', report.id]" class="btn-view" title="View Details">
+                            👁️ View
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div *ngIf="reports.length > 0" class="pagination">
+            <button class="btn-page" (click)="previousPage()" [disabled]="page === 0">
+                ← Previous
+            </button>
+            <span class="page-info">
+                Page {{ page + 1 }} of {{ getTotalPages() }} ({{ total }} total reports)
+            </span>
+            <button class="btn-page" (click)="nextPage()" [disabled]="(page + 1) * pageSize >= total">
+                Next →
+            </button>
+        </div>
+    </div>
+</div>
