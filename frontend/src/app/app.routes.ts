@@ -127,6 +127,23 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'reports',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/reports/reports-dashboard/reports-dashboard').then((m) => m.ReportsDashboard),
+      },
+      {
+        path: 'list',
+        loadComponent: () =>
+          import('@features/reports/reports-list/reports-list').then((m) => m.ReportsList),
+      },
+    ],
+  },
+  {
     path: 'users',
     canActivate: [authGuard],
     loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
