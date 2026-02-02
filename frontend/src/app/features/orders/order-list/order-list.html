@@ -152,7 +152,11 @@
                     </svg>
                   </button>
                 }
-                @if (order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'shipping') {
+                @if (
+                  order.status !== 'completed' &&
+                  order.status !== 'cancelled' &&
+                  order.status !== 'shipping'
+                ) {
                   <button
                     class="btn-action btn-cancel"
                     (click)="cancelOrder(order.id)"

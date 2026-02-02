@@ -49,4 +49,3 @@ export class PaymentService {
     return this.apiService.get<PaymentStats>(API_ENDPOINTS.PAYMENTS.STATS);
   }
 }
-

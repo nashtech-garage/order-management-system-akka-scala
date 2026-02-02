@@ -1,7 +1,9 @@
 <div class="payment-list-container">
   <div class="header">
     <h1>Payment Records</h1>
-    <p class="subtitle">View all payment transactions. Payments are automatically created when orders are paid.</p>
+    <p class="subtitle">
+      View all payment transactions. Payments are automatically created when orders are paid.
+    </p>
   </div>
 
   <div class="filters">
@@ -40,7 +42,9 @@
             <tr>
               <td>#{{ payment.id }}</td>
               <td>
-                <a [routerLink]="['/orders', payment.orderId]" class="order-link">#{{ payment.orderId }}</a>
+                <a [routerLink]="['/orders', payment.orderId]" class="order-link"
+                  >#{{ payment.orderId }}</a
+                >
               </td>
               <td class="amount">${{ payment.amount | number: '1.2-2' }}</td>
               <td>
@@ -64,7 +68,11 @@
         Previous
       </button>
       <span class="page-info">Page {{ currentPage() }}</span>
-      <button class="btn btn-secondary" (click)="nextPage()" [disabled]="payments().length < limit()">
+      <button
+        class="btn btn-secondary"
+        (click)="nextPage()"
+        [disabled]="payments().length < limit()"
+      >
         Next
       </button>
     </div>

@@ -24,30 +24,32 @@
       <div class="card-body">
         <div class="info-grid">
           <div class="info-item">
-            <label>Order ID</label>
-            <div class="value">
-              <a (click)="viewOrder()" class="link">Order #{{ payment()!.orderId }}</a>
+            <label for="orderId">Order ID</label>
+            <div class="value" id="orderId">
+              <a (click)="viewOrder()" (keyup.enter)="viewOrder()" tabindex="0" class="link"
+                >Order #{{ payment()!.orderId }}</a
+              >
             </div>
           </div>
 
           <div class="info-item">
-            <label>Amount</label>
-            <div class="value amount">{{ formatCurrency(payment()!.amount) }}</div>
+            <label for="amount">Amount</label>
+            <div class="value amount" id="amount">{{ formatCurrency(payment()!.amount) }}</div>
           </div>
 
           <div class="info-item">
-            <label>Payment Method</label>
-            <div class="value">{{ payment()!.paymentMethod }}</div>
+            <label for="paymentMethod">Payment Method</label>
+            <div class="value" id="paymentMethod">{{ payment()!.paymentMethod }}</div>
           </div>
 
           <div class="info-item">
-            <label>Created By</label>
-            <div class="value">User #{{ payment()!.createdBy }}</div>
+            <label for="createdBy">Created By</label>
+            <div class="value" id="createdBy">User #{{ payment()!.createdBy }}</div>
           </div>
 
           <div class="info-item">
-            <label>Created At</label>
-            <div class="value">{{ formatDate(payment()!.createdAt) }}</div>
+            <label for="createdAt">Created At</label>
+            <div class="value" id="createdAt">{{ formatDate(payment()!.createdAt) }}</div>
           </div>
         </div>
       </div>

@@ -28,4 +28,3 @@ export interface PaymentStats {
   totalAmount: number;
   successAmount: number;
 }
-
