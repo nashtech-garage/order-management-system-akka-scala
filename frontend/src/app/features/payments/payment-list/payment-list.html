@@ -1,0 +1,80 @@
+<div class="payment-list-container">
+  <div class="header">
+    <h1>Payment Records</h1>
+    <p class="subtitle">
+      View all payment transactions. Payments are automatically created when orders are paid.
+    </p>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label for="status-filter">Status:</label>
+      <select id="status-filter" [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+        <option value="">All Statuses</option>
+        <option [value]="PaymentStatus.SUCCESS">Success</option>
+        <option [value]="PaymentStatus.FAILED">Failed</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Loading payments...</div>
+  }
+
+  @if (error()) {
+    <div class="error">{{ error() }}</div>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Order ID</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of payments(); track payment.id) {
+            <tr>
+              <td>#{{ payment.id }}</td>
+              <td>
+                <a [routerLink]="['/orders', payment.orderId]" class="order-link"
+                  >#{{ payment.orderId }}</a
+                >
+              </td>
+              <td class="amount">${{ payment.amount | number: '1.2-2' }}</td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(payment.status)">
+                  {{ payment.status }}
+                </span>
+              </td>
+              <td>{{ formatDate(payment.createdAt) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="no-data">No payment records found</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="btn btn-secondary" (click)="previousPage()" [disabled]="offset() === 0">
+        Previous
+      </button>
+      <span class="page-info">Page {{ currentPage() }}</span>
+      <button
+        class="btn btn-secondary"
+        (click)="nextPage()"
+        [disabled]="payments().length < limit()"
+      >
+        Next
+      </button>
+    </div>
+  }
+</div>

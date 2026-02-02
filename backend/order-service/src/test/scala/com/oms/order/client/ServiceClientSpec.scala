@@ -46,8 +46,11 @@ class ServiceClientSpec extends AnyWordSpec with Matchers with ScalaFutures with
       Future.successful(mockCustomerResponse)
     }
 
-    override def processPayment(orderId: Long, amount: BigDecimal, paymentMethod: String, token: String): Future[Option[PaymentInfo]] = {
-      Future.successful(mockPaymentResponse)
+    override def processPayment(orderId: Long, amount: BigDecimal, token: String): Future[PaymentResponse] = {
+      mockPaymentResponse match {
+        case Some(info) => Future.successful(PaymentResponse(info.id, info.orderId, 1L, info.amount, "credit_card", info.status, None))
+        case None => Future.failed(new Exception("Payment failed"))
+      }
     }
   }
 
@@ -196,49 +199,48 @@ class ServiceClientSpec extends AnyWordSpec with Matchers with ScalaFutures with
     }
 
     "processing payment" should {
-      "return payment info when payment succeeds" in {
+      "return payment response when payment succeeds" in {
         val client = new TestServiceClient()
         client.mockPaymentResponse = Some(PaymentInfo(1L, 1L, BigDecimal("50.00"), "completed"))
 
-        val result = client.processPayment(1L, BigDecimal("50.00"), "credit_card", "test_token").futureValue
+        val result = client.processPayment(1L, BigDecimal("50.00"), "test_token").futureValue
         
-        result shouldBe defined
-        result.get.id shouldBe 1L
-        result.get.orderId shouldBe 1L
-        result.get.amount shouldBe BigDecimal("50.00")
-        result.get.status shouldBe "completed"
+        result.id shouldBe 1L
+        result.orderId shouldBe 1L
+        result.amount shouldBe BigDecimal("50.00")
+        result.status shouldBe "completed"
       }
 
-      "return None when payment fails" in {
+      "return error when payment fails" in {
         val client = new TestServiceClient()
         client.mockPaymentResponse = None
 
-        val result = client.processPayment(1L, BigDecimal("50.00"), "invalid_method", "test_token").futureValue
-        
-        result shouldBe None
+        an[Exception] should be thrownBy {
+          client.processPayment(1L, BigDecimal("50.00"), "test_token").futureValue
+        }
       }
 
-      "handle different payment methods" in {
+      "handle different payment calls" in {
         val client = new TestServiceClient()
         client.mockPaymentResponse = Some(PaymentInfo(2L, 2L, BigDecimal("100.00"), "completed"))
 
-        val result1 = client.processPayment(2L, BigDecimal("100.00"), "credit_card", "token1").futureValue
-        result1.get.status shouldBe "completed"
+        val result1 = client.processPayment(2L, BigDecimal("100.00"), "token1").futureValue
+        result1.status shouldBe "completed"
 
-        val result2 = client.processPayment(3L, BigDecimal("75.00"), "debit_card", "token2").futureValue
-        result2.get.status shouldBe "completed"
+        val result2 = client.processPayment(3L, BigDecimal("75.00"), "token2").futureValue
+        result2.status shouldBe "completed"
       }
 
       "handle different amounts" in {
         val client = new TestServiceClient()
         
         client.mockPaymentResponse = Some(PaymentInfo(3L, 3L, BigDecimal("25.50"), "completed"))
-        val result1 = client.processPayment(3L, BigDecimal("25.50"), "credit_card", "token").futureValue
-        result1.get.amount shouldBe BigDecimal("25.50")
+        val result1 = client.processPayment(3L, BigDecimal("25.50"), "token").futureValue
+        result1.amount shouldBe BigDecimal("25.50")
 
         client.mockPaymentResponse = Some(PaymentInfo(4L, 4L, BigDecimal("999.99"), "completed"))
-        val result2 = client.processPayment(4L, BigDecimal("999.99"), "credit_card", "token").futureValue
-        result2.get.amount shouldBe BigDecimal("999.99")
+        val result2 = client.processPayment(4L, BigDecimal("999.99"), "token").futureValue
+        result2.amount shouldBe BigDecimal("999.99")
       }
     }
 

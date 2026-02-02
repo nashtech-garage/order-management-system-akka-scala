@@ -16,7 +16,7 @@ import org.scalatest.BeforeAndAfterAll
 import spray.json._
 
 import java.time.LocalDateTime
-import java.util.Base64
+
 
 class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTest with ScalaFutures 
     with BeforeAndAfterAll with PaymentJsonFormats {
@@ -28,10 +28,11 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     super.afterAll()
   }
 
-  // Helper to create a token
+  // Helper to create a JWT token
   def createToken(userId: Long): String = {
-    val tokenData = s"$userId:testuser:${System.currentTimeMillis()}"
-    Base64.getEncoder.encodeToString(tokenData.getBytes("UTF-8"))
+    import com.oms.common.security.{JwtService, JwtUser}
+    val jwtUser = JwtUser(userId, "testuser", "test@example.com", "user")
+    JwtService.generateToken(jwtUser)
   }
 
   // Helper to create a test actor with custom behavior
@@ -44,30 +45,9 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
 
   "PaymentRoutes" when {
     "POST /payments" should {
-      "create a new payment with valid token and return 201" in {
-        val now = LocalDateTime.now()
-        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "pending", None, now)
-        
+      "return 400 (legacy endpoint - use /payments/process-order instead)" in {
         val actor = createTestActor {
-          case CreatePayment(_, _, replyTo) => replyTo ! PaymentCreated(payment)
-        }
-        val routes = new PaymentRoutes(actor)(testKit.system).routes
-        
-        val request = CreatePaymentRequest(100L, BigDecimal("250.00"), "credit_card")
-        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
-        val token = createToken(5L)
-        
-        Post("/payments", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
-          status shouldBe StatusCodes.Created
-          val response = responseAs[PaymentResponse]
-          response.orderId shouldBe 100L
-          response.amount shouldBe BigDecimal("250.00")
-        }
-      }
-
-      "return 400 when payment creation fails" in {
-        val actor = createTestActor {
-          case CreatePayment(_, _, replyTo) => replyTo ! PaymentError("Invalid payment")
+          case CreatePayment(_, _, replyTo) => replyTo ! PaymentError("Use ProcessOrderPayment instead")
         }
         val routes = new PaymentRoutes(actor)(testKit.system).routes
         
@@ -99,8 +79,8 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
       "return list of payments" in {
         val now = LocalDateTime.now()
         val payments = Seq(
-          PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", Some("TXN-123"), now),
-          PaymentResponse(2L, 101L, 6L, BigDecimal("150.00"), "debit_card", "pending", None, now)
+          PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", now),
+          PaymentResponse(2L, 101L, 6L, BigDecimal("150.00"), "debit_card", "pending", now)
         )
         
         val actor = createTestActor {
@@ -118,7 +98,7 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
       "filter by status" in {
         val now = LocalDateTime.now()
         val payments = Seq(
-          PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", Some("TXN-123"), now)
+          PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", now)
         )
         
         val actor = createTestActor {
@@ -138,7 +118,7 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /payments/order/:orderId" should {
       "return payment details when found" in {
         val now = LocalDateTime.now()
-        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", Some("TXN-123"), now)
+        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", now)
         
         val actor = createTestActor {
           case GetPaymentByOrder(100L, replyTo) => replyTo ! PaymentFound(payment)
@@ -167,7 +147,7 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
     "GET /payments/:id" should {
       "return payment details when found" in {
         val now = LocalDateTime.now()
-        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", Some("TXN-123"), now)
+        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", now)
         
         val actor = createTestActor {
           case GetPayment(1L, replyTo) => replyTo ! PaymentFound(payment)
@@ -193,114 +173,100 @@ class PaymentRoutesSpec extends AnyWordSpec with Matchers with ScalatestRouteTes
       }
     }
 
-    "POST /payments/:id/process" should {
-      "process payment successfully" in {
+    "POST /payments/process-order" should {
+      "successfully process payment for an order" in {
         val now = LocalDateTime.now()
-        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "processing", Some("TXN-123"), now)
+        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", now)
         
         val actor = createTestActor {
-          case ProcessPayment(1L, replyTo) => replyTo ! PaymentProcessed(payment)
+          case ProcessOrderPayment(100L, amount, 5L, replyTo) if amount == BigDecimal("250.00") =>
+            replyTo ! PaymentCreated(payment)
         }
         val routes = new PaymentRoutes(actor)(testKit.system).routes
         
-        Post("/payments/1/process") ~> routes ~> check {
-          status shouldBe StatusCodes.OK
-          val response = responseAs[PaymentResponse]
-          response.status shouldBe "processing"
-        }
-      }
-
-      "return 400 when processing fails" in {
-        val actor = createTestActor {
-          case ProcessPayment(1L, replyTo) => replyTo ! PaymentError("Cannot process")
-        }
-        val routes = new PaymentRoutes(actor)(testKit.system).routes
-        
-        Post("/payments/1/process") ~> routes ~> check {
-          status shouldBe StatusCodes.BadRequest
-        }
-      }
-    }
-
-    "POST /payments/:id/complete" should {
-      "complete payment successfully" in {
-        val now = LocalDateTime.now()
-        val payment = PaymentResponse(1L, 100L, 5L, BigDecimal("250.00"), "credit_card", "completed", Some("TXN-FINAL"), now)
-        
-        val actor = createTestActor {
-          case CompletePayment(1L, "TXN-FINAL", replyTo) => replyTo ! PaymentCompleted(payment)
-        }
-        val routes = new PaymentRoutes(actor)(testKit.system).routes
-        
-        val request = ProcessPaymentRequest("TXN-FINAL")
+        val request = ProcessOrderPaymentRequest(100L, BigDecimal("250.00"))
         val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        val token = createToken(5L)
         
-        Post("/payments/1/complete", entity) ~> routes ~> check {
-          status shouldBe StatusCodes.OK
+        Post("/payments/process-order", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.Created
           val response = responseAs[PaymentResponse]
+          response.orderId shouldBe 100L
+          response.createdBy shouldBe 5L
+          response.amount shouldBe BigDecimal("250.00")
           response.status shouldBe "completed"
         }
       }
 
-      "return 400 when completion fails" in {
+      "return 400 when payment processing fails" in {
         val actor = createTestActor {
-          case CompletePayment(1L, _, replyTo) => replyTo ! PaymentError("Cannot complete")
+          case ProcessOrderPayment(100L, _, _, replyTo) =>
+            replyTo ! PaymentError("Insufficient funds")
         }
         val routes = new PaymentRoutes(actor)(testKit.system).routes
         
-        val request = ProcessPaymentRequest("TXN-123")
+        val request = ProcessOrderPaymentRequest(100L, BigDecimal("250.00"))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        val token = createToken(5L)
+        
+        Post("/payments/process-order", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.BadRequest
+          val response = responseAs[Map[String, String]]
+          response("error") shouldBe "Insufficient funds"
+        }
+      }
+
+      "reject request when no authorization token provided" in {
+        val actor = createTestActor {
+          case ProcessOrderPayment(_, _, _, replyTo) =>
+            replyTo ! PaymentError("Unauthorized")
+        }
+        val routes = new PaymentRoutes(actor)(testKit.system).routes
+        
+        val request = ProcessOrderPaymentRequest(100L, BigDecimal("250.00"))
         val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
         
-        Post("/payments/1/complete", entity) ~> routes ~> check {
-          status shouldBe StatusCodes.BadRequest
-        }
-      }
-    }
-
-    "POST /payments/:id/fail" should {
-      "fail payment successfully" in {
-        val actor = createTestActor {
-          case FailPayment(1L, replyTo) => replyTo ! PaymentFailed("Payment 1 marked as failed")
-        }
-        val routes = new PaymentRoutes(actor)(testKit.system).routes
-        
-        Post("/payments/1/fail") ~> routes ~> check {
-          status shouldBe StatusCodes.OK
+        Post("/payments/process-order", entity) ~> routes ~> check {
+          handled shouldBe false
         }
       }
 
-      "return 400 when fail operation fails" in {
+      "reject request when invalid token provided" in {
         val actor = createTestActor {
-          case FailPayment(1L, replyTo) => replyTo ! PaymentError("Cannot fail payment")
+          case ProcessOrderPayment(_, _, _, replyTo) =>
+            replyTo ! PaymentError("Unauthorized")
         }
         val routes = new PaymentRoutes(actor)(testKit.system).routes
         
-        Post("/payments/1/fail") ~> routes ~> check {
-          status shouldBe StatusCodes.BadRequest
-        }
-      }
-    }
-
-    "POST /payments/:id/refund" should {
-      "refund payment successfully" in {
-        val actor = createTestActor {
-          case RefundPayment(1L, replyTo) => replyTo ! PaymentRefunded("Payment 1 refunded successfully")
-        }
-        val routes = new PaymentRoutes(actor)(testKit.system).routes
+        val request = ProcessOrderPaymentRequest(100L, BigDecimal("250.00"))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        val invalidToken = "invalid.jwt.token"
         
-        Post("/payments/1/refund") ~> routes ~> check {
-          status shouldBe StatusCodes.OK
+        Post("/payments/process-order", entity).addHeader(Authorization(OAuth2BearerToken(invalidToken))) ~> routes ~> check {
+          handled shouldBe false
         }
       }
 
-      "return 400 when refund fails" in {
+      "handle different payment amounts correctly" in {
+        val now = LocalDateTime.now()
+        val payment = PaymentResponse(2L, 200L, 10L, BigDecimal("999.99"), "paypal", "pending", now)
+        
         val actor = createTestActor {
-          case RefundPayment(1L, replyTo) => replyTo ! PaymentError("Cannot refund")
+          case ProcessOrderPayment(200L, amount, 10L, replyTo) if amount == BigDecimal("999.99") =>
+            replyTo ! PaymentCreated(payment)
         }
         val routes = new PaymentRoutes(actor)(testKit.system).routes
         
-        Post("/payments/1/refund") ~> routes ~> check {
-          status shouldBe StatusCodes.BadRequest
+        val request = ProcessOrderPaymentRequest(200L, BigDecimal("999.99"))
+        val entity = HttpEntity(ContentTypes.`application/json`, request.toJson.toString)
+        val token = createToken(10L)
+        
+        Post("/payments/process-order", entity).addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
+          status shouldBe StatusCodes.Created
+          val response = responseAs[PaymentResponse]
+          response.orderId shouldBe 200L
+          response.createdBy shouldBe 10L
+          response.amount shouldBe BigDecimal("999.99")
         }
       }
     }

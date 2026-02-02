@@ -24,4 +24,15 @@ export const API_ENDPOINTS = {
     CANCEL: (id: string) => `/orders/${id}/cancel`,
     STATS: '/orders/stats',
   },
+  PAYMENTS: {
+    BASE: '/payments',
+    BY_ID: (id: string) => `/payments/${id}`,
+    BY_ORDER: (orderId: string) => `/payments/order/${orderId}`,
+    BY_STATUS: (status: string) => `/payments?status=${status}`,
+    PROCESS: (id: string) => `/payments/${id}/process`,
+    COMPLETE: (id: string) => `/payments/${id}/complete`,
+    FAIL: (id: string) => `/payments/${id}/fail`,
+    REFUND: (id: string) => `/payments/${id}/refund`,
+    STATS: '/payments/stats',
+  },
 };

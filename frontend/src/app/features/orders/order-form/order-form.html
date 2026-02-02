@@ -80,7 +80,7 @@
                   <option value="">-- Select a Product --</option>
                   @for (product of products(); track product.id) {
                     <option [value]="product.id">
-                      {{ product.name }} - \${{ product.price | number: '1.2-2' }} (Stock:
+                      {{ product.name }} - ${{ product.price | number: '1.2-2' }} (Stock:
                       {{ product.stockQuantity }})
                     </option>
                   }

@@ -85,15 +85,15 @@
                 <tr>
                   <td>{{ item.productName || 'Product #' + item.productId }}</td>
                   <td>{{ item.quantity }}</td>
-                  <td>\${{ item.unitPrice | number: '1.2-2' }}</td>
-                  <td>\${{ item.subtotal | number: '1.2-2' }}</td>
+                  <td>${{ item.unitPrice | number: '1.2-2' }}</td>
+                  <td>${{ item.subtotal | number: '1.2-2' }}</td>
                 </tr>
               }
             </tbody>
             <tfoot>
               <tr>
                 <td colspan="3" class="total-label">Total:</td>
-                <td class="total-value">\${{ order()!.totalAmount | number: '1.2-2' }}</td>
+                <td class="total-value">${{ order()!.totalAmount | number: '1.2-2' }}</td>
               </tr>
             </tfoot>
           </table>

@@ -161,7 +161,7 @@ This starts a PostgreSQL 16 instance and automatically creates all required data
 
 **Option A: Run all services at once (Windows)**
 ```bash
-run-all-services.bat
+.\run-all-services.bat
 ```
 
 **Option B: Compile and run manually**
