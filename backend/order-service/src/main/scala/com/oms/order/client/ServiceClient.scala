@@ -5,6 +5,8 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import akka.http.scaladsl.model.headers.Authorization
 import com.oms.common.JsonSupport
 import spray.json._
 
@@ -13,12 +15,16 @@ import scala.concurrent.{ExecutionContext, Future}
 case class ProductInfo(id: Long, name: String, price: BigDecimal, stockQuantity: Int)
 case class CustomerInfo(id: Long, firstName: String, lastName: String, email: String)
 case class PaymentRequest(orderId: Long, amount: BigDecimal, paymentMethod: String)
+case class ProcessOrderPaymentRequest(orderId: Long, amount: BigDecimal)
+case class PaymentResponse(id: Long, orderId: Long, createdBy: Long, amount: BigDecimal, paymentMethod: String, status: String, transactionId: Option[String])
 case class PaymentInfo(id: Long, orderId: Long, amount: BigDecimal, status: String)
 
 trait ServiceClientFormats extends JsonSupport {
   implicit val productInfoFormat: RootJsonFormat[ProductInfo] = jsonFormat4(ProductInfo)
   implicit val customerInfoFormat: RootJsonFormat[CustomerInfo] = jsonFormat4(CustomerInfo)
   implicit val paymentRequestFormat: RootJsonFormat[PaymentRequest] = jsonFormat3(PaymentRequest)
+  implicit val processOrderPaymentRequestFormat: RootJsonFormat[ProcessOrderPaymentRequest] = jsonFormat2(ProcessOrderPaymentRequest)
+  implicit val paymentResponseFormat: RootJsonFormat[PaymentResponse] = jsonFormat7(PaymentResponse)
   implicit val paymentInfoFormat: RootJsonFormat[PaymentInfo] = jsonFormat4(PaymentInfo)
 }
 
@@ -110,22 +116,22 @@ class ServiceClient(
     }
   }
   
-  def processPayment(orderId: Long, amount: BigDecimal, paymentMethod: String, token: String): Future[Option[PaymentInfo]] = {
-    val paymentRequest = PaymentRequest(orderId, amount, paymentMethod)
+  def processPayment(orderId: Long, amount: BigDecimal, token: String): Future[PaymentResponse] = {
+    val paymentRequest = ProcessOrderPaymentRequest(orderId, amount)
     val request = HttpRequest(
       method = HttpMethods.POST,
-      uri = s"$paymentServiceUrl/payments",
-      headers = List(akka.http.scaladsl.model.headers.Authorization(akka.http.scaladsl.model.headers.OAuth2BearerToken(token))),
+      uri = s"$paymentServiceUrl/payments/process-order",
+      headers = List(Authorization(OAuth2BearerToken(token))),
       entity = HttpEntity(ContentTypes.`application/json`, paymentRequest.toJson.compactPrint)
     )
     
     http.singleRequest(request).flatMap { response =>
       response.status match {
         case StatusCodes.Created | StatusCodes.OK =>
-          Unmarshal(response.entity).to[PaymentInfo].map(Some(_))
+          Unmarshal(response.entity).to[PaymentResponse]
         case _ =>
           response.discardEntityBytes()
-          Future.successful(None)
+          Future.failed(new Exception(s"Payment service returned ${response.status}"))
       }
     }
   }

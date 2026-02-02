@@ -1,12 +1,12 @@
 package com.oms.order.actor
 
-import akka.actor.testkit.typed.scaladsl.{ActorTestKit, TestProbe}
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.stream.Materializer
 import com.oms.order.actor.OrderActor._
-import com.oms.order.client.{CustomerInfo, PaymentInfo, ProductInfo, ServiceClient}
+import com.oms.order.client.{CustomerInfo, PaymentResponse, ProductInfo, ServiceClient}
 import com.oms.order.model._
 import com.oms.order.repository.OrderRepository
-import com.oms.order.stream.{OrderStats, OrderStreamProcessor}
+import com.oms.order.stream.OrderStreamProcessor
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -14,7 +14,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.time.{Millis, Seconds, Span}
 import slick.jdbc.PostgresProfile.api._
 
-import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
 class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with BeforeAndAfterAll {
@@ -63,12 +62,8 @@ class OrderActorSpec extends AnyWordSpec with Matchers with ScalaFutures with Be
       }
     }
 
-    override def processPayment(orderId: Long, amount: BigDecimal, paymentMethod: String, token: String): Future[Option[PaymentInfo]] = {
-      if (paymentMethod == "credit_card") {
-        Future.successful(Some(PaymentInfo(1L, orderId, amount, "completed")))
-      } else {
-        Future.successful(None)
-      }
+    override def processPayment(orderId: Long, amount: BigDecimal, token: String): Future[PaymentResponse] = {
+      Future.successful(PaymentResponse(1L, orderId, 1L, amount, "credit_card", "success", None))
     }
   }
 

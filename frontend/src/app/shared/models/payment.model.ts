@@ -1,30 +1,31 @@
 export interface Payment {
-  id: string;
-  orderId: string;
+  id: number;
+  orderId: number;
+  createdBy: number;
   amount: number;
-  status: PaymentStatus;
-  method: PaymentMethod;
-  transactionId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  paymentMethod: string;
+  status: string; // 'success' or 'failed'
+  createdAt: string;
 }
 
 export enum PaymentStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  REFUNDED = 'REFUNDED',
+  SUCCESS = 'success',
+  FAILED = 'failed',
 }
 
 export enum PaymentMethod {
-  CREDIT_CARD = 'CREDIT_CARD',
-  DEBIT_CARD = 'DEBIT_CARD',
-  PAYPAL = 'PAYPAL',
-  BANK_TRANSFER = 'BANK_TRANSFER',
+  AUTO = 'auto',
 }
 
-export interface CreatePaymentRequest {
-  orderId: string;
-  amount: number;
-  method: PaymentMethod;
+// Removed - payments are no longer created from payment page
+// export interface CreatePaymentRequest
+// export interface ProcessPaymentRequest
+
+export interface PaymentStats {
+  totalPayments: number;
+  successfulPayments: number;
+  failedPayments: number;
+  totalAmount: number;
+  successAmount: number;
 }
+

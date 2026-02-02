@@ -14,10 +14,9 @@ class PaymentRepository(db: Database)(implicit ec: ExecutionContext) {
     def amount = column[BigDecimal]("amount")
     def paymentMethod = column[String]("payment_method")
     def status = column[String]("status")
-    def transactionId = column[Option[String]]("transaction_id")
     def createdAt = column[LocalDateTime]("created_at")
     
-    def * = (id.?, orderId, createdBy, amount, paymentMethod, status, transactionId, createdAt).mapTo[Payment]
+    def * = (id.?, orderId, createdBy, amount, paymentMethod, status, createdAt).mapTo[Payment]
   }
   
   private val payments = TableQuery[PaymentsTable]
@@ -39,10 +38,6 @@ class PaymentRepository(db: Database)(implicit ec: ExecutionContext) {
     db.run(payments.filter(_.orderId === orderId).result.headOption)
   }
   
-  def findByTransactionId(transactionId: String): Future[Option[Payment]] = {
-    db.run(payments.filter(_.transactionId === transactionId).result.headOption)
-  }
-  
   def findByCreatedBy(userId: Long, offset: Int = 0, limit: Int = 20): Future[Seq[Payment]] = {
     db.run(payments.filter(_.createdBy === userId).sortBy(_.createdAt.desc).drop(offset).take(limit).result)
   }
@@ -55,9 +50,9 @@ class PaymentRepository(db: Database)(implicit ec: ExecutionContext) {
     db.run(payments.filter(_.status === status).sortBy(_.createdAt.desc).drop(offset).take(limit).result)
   }
   
-  def updateStatus(id: Long, status: String, transactionId: Option[String] = None): Future[Int] = {
-    val query = payments.filter(_.id === id).map(p => (p.status, p.transactionId))
-    db.run(query.update((status, transactionId)))
+  def updateStatus(id: Long, status: String): Future[Int] = {
+    val query = payments.filter(_.id === id).map(_.status)
+    db.run(query.update(status))
   }
   
   def count(): Future[Int] = {

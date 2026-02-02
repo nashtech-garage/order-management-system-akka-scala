@@ -153,6 +153,18 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'payments',
+    canActivate: [authGuard],
+    loadComponent: () => import('@layout/main-layout/main-layout').then((m) => m.MainLayout),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('@features/payments/payment-list/payment-list').then((m) => m.PaymentList),
+      },
+    ],
+  },
+  {
     path: '**',
     loadComponent: () => import('@features/not-found/not-found').then((m) => m.NotFound),
   },

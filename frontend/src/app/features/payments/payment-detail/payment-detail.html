@@ -1,0 +1,73 @@
+<div class="payment-detail-container">
+  <div class="header">
+    <button class="btn btn-secondary" (click)="goBack()">← Back to Payments</button>
+    <h1>Payment Details</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Loading payment...</div>
+  }
+
+  @if (error()) {
+    <div class="error">{{ error() }}</div>
+  }
+
+  @if (!loading() && !error() && payment()) {
+    <div class="payment-card">
+      <div class="card-header">
+        <h2>Payment #{{ payment()!.id }}</h2>
+        <span class="badge" [ngClass]="getStatusBadgeClass(payment()!.status)">
+          {{ payment()!.status }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Order ID</label>
+            <div class="value">
+              <a (click)="viewOrder()" class="link">Order #{{ payment()!.orderId }}</a>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <label>Amount</label>
+            <div class="value amount">{{ formatCurrency(payment()!.amount) }}</div>
+          </div>
+
+          <div class="info-item">
+            <label>Payment Method</label>
+            <div class="value">{{ payment()!.paymentMethod }}</div>
+          </div>
+
+          <div class="info-item">
+            <label>Created By</label>
+            <div class="value">User #{{ payment()!.createdBy }}</div>
+          </div>
+
+          <div class="info-item">
+            <label>Created At</label>
+            <div class="value">{{ formatDate(payment()!.createdAt) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="payment-info">
+      <h3>Payment Information</h3>
+      <div class="info-content">
+        <p>
+          <strong>Status Description:</strong>
+          @switch (payment()!.status) {
+            @case (PaymentStatus.SUCCESS) {
+              <span>Payment has been successfully completed.</span>
+            }
+            @case (PaymentStatus.FAILED) {
+              <span>Payment processing failed. Please try again or contact support.</span>
+            }
+          }
+        </p>
+      </div>
+    </div>
+  }
+</div>

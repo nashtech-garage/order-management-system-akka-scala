@@ -7,13 +7,13 @@ case class Payment(
   orderId: Long,
   createdBy: Long, // User ID who created the payment
   amount: BigDecimal,
-  paymentMethod: String, // credit_card, debit_card, bank_transfer, wallet
-  status: String = "pending", // pending, processing, completed, failed, refunded
-  transactionId: Option[String] = None,
+  paymentMethod: String = "auto", // Simplified - always auto
+  status: String = "success", // success or failed only
   createdAt: LocalDateTime = LocalDateTime.now()
 )
 
 case class CreatePaymentRequest(orderId: Long, amount: BigDecimal, paymentMethod: String)
+case class ProcessOrderPaymentRequest(orderId: Long, amount: BigDecimal)
 case class ProcessPaymentRequest(transactionId: String)
 case class RefundPaymentRequest(reason: String)
 
@@ -24,7 +24,6 @@ case class PaymentResponse(
   amount: BigDecimal,
   paymentMethod: String,
   status: String,
-  transactionId: Option[String],
   createdAt: LocalDateTime
 )
 
@@ -37,7 +36,6 @@ object PaymentResponse {
       payment.amount,
       payment.paymentMethod,
       payment.status,
-      payment.transactionId,
       payment.createdAt
     )
 }

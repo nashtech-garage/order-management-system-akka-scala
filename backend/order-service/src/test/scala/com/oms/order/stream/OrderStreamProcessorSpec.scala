@@ -3,7 +3,7 @@ package com.oms.order.stream
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
-import com.oms.order.client.{CustomerInfo, PaymentInfo, ProductInfo, ServiceClient}
+import com.oms.order.client.{CustomerInfo, PaymentResponse, ProductInfo, ServiceClient}
 import com.oms.order.model.{Order, OrderItem}
 import com.oms.order.repository.OrderRepository
 import com.oms.order.stream.{OrderStats, OrderStreamProcessor}
@@ -14,7 +14,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.time.{Millis, Seconds, Span}
 import slick.jdbc.PostgresProfile.api._
 
-import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
 class OrderStreamProcessorSpec extends AnyWordSpec with Matchers with ScalaFutures with BeforeAndAfterAll {
@@ -54,8 +53,8 @@ class OrderStreamProcessorSpec extends AnyWordSpec with Matchers with ScalaFutur
 
     override def checkProductStock(productId: Long, quantity: Int): Future[Boolean] = Future.successful(true)
     override def adjustProductStock(productId: Long, adjustment: Int): Future[Boolean] = Future.successful(true)
-    override def processPayment(orderId: Long, amount: BigDecimal, paymentMethod: String, token: String): Future[Option[PaymentInfo]] = 
-      Future.successful(None)
+    override def processPayment(orderId: Long, amount: BigDecimal, token: String): Future[PaymentResponse] = 
+      Future.successful(PaymentResponse(1L, orderId, 1L, amount, "credit_card", "success", None))
   }
 
   val serviceClient = new MockServiceClient()

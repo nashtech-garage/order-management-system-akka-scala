@@ -112,6 +112,20 @@ export class OrderList implements OnInit {
     }
   }
 
+  completeOrder(id: number) {
+    if (confirm('Mark this order as completed?')) {
+      this.orderService.completeOrder(id).subscribe({
+        next: () => {
+          alert('Order completed successfully!');
+          this.loadOrders();
+        },
+        error: (err) => {
+          alert('Failed to complete order: ' + (err.error?.error || err.message));
+        },
+      });
+    }
+  }
+
   currentPage() {
     return Math.floor(this.offset() / this.limit()) + 1;
   }

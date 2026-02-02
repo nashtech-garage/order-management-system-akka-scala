@@ -17,7 +17,6 @@ class PaymentModelSpec extends AnyWordSpec with Matchers {
         amount = BigDecimal("250.00"),
         paymentMethod = "credit_card",
         status = "completed",
-        transactionId = Some("TXN-12345678"),
         createdAt = now
       )
 
@@ -29,7 +28,6 @@ class PaymentModelSpec extends AnyWordSpec with Matchers {
       response.amount shouldBe BigDecimal("250.00")
       response.paymentMethod shouldBe "credit_card"
       response.status shouldBe "completed"
-      response.transactionId shouldBe Some("TXN-12345678")
       response.createdAt shouldBe now
     }
 
@@ -74,7 +72,7 @@ class PaymentModelSpec extends AnyWordSpec with Matchers {
   }
 
   "Payment" should {
-    "have default status of pending" in {
+    "have default status of success" in {
       val payment = Payment(
         orderId = 100L,
         createdBy = 5L,
@@ -82,18 +80,17 @@ class PaymentModelSpec extends AnyWordSpec with Matchers {
         paymentMethod = "wallet"
       )
 
-      payment.status shouldBe "pending"
+      payment.status shouldBe "success"
     }
 
-    "have default transactionId as None" in {
+    "have default paymentMethod as auto" in {
       val payment = Payment(
         orderId = 100L,
         createdBy = 5L,
-        amount = BigDecimal("100.00"),
-        paymentMethod = "credit_card"
+        amount = BigDecimal("100.00")
       )
 
-      payment.transactionId shouldBe None
+      payment.paymentMethod shouldBe "auto"
     }
   }
 }

@@ -259,26 +259,26 @@ object OrderActor {
             orderOpt <- repository.findById(id)
             result <- orderOpt match {
               case Some(order) if order.status == "created" && order.totalAmount > 0 =>
-                // Simulate payment with 80% success rate
-                val paymentSuccess = scala.util.Random.nextDouble() < 0.8
-                val paymentResult = if (paymentSuccess) {
-                  for {
-                    _ <- repository.updateStatus(id, "paid")
-                  } yield {
-                    val paymentInfo = PaymentInfo(
-                      id = java.util.UUID.randomUUID().toString.hashCode.toLong.abs,
-                      orderId = id,
-                      amount = order.totalAmount,
-                      status = "success"
-                    )
-                    // Auto-trigger shipping after successful payment
-                    context.self ! ShipOrder(id, context.system.ignoreRef)
-                    paymentInfo
+                // Call payment service to process payment
+                serviceClient.processPayment(order.id.getOrElse(0L), order.totalAmount, token).flatMap { paymentResponse =>
+                  if (paymentResponse.status == "success") {
+                    // Payment succeeded - update order to paid and trigger shipping
+                    repository.updateStatus(id, "paid").map { _ =>
+                      val paymentInfo = PaymentInfo(
+                        id = paymentResponse.id,
+                        orderId = id,
+                        amount = paymentResponse.amount,
+                        status = "success"
+                      )
+                      // Auto-trigger shipping after successful payment
+                      context.self ! ShipOrder(id, context.system.ignoreRef)
+                      paymentInfo
+                    }
+                  } else {
+                    // Payment failed - keep order status as created
+                    Future.failed(new Exception("Payment failed"))
                   }
-                } else {
-                  Future.failed(new Exception("Payment failed (simulated failure)"))
                 }
-                paymentResult
               case Some(order) if order.totalAmount <= 0 =>
                 Future.failed(new Exception("Cannot pay for order with zero amount"))
               case Some(order) =>
@@ -304,9 +304,7 @@ object OrderActor {
             result <- orderOpt match {
               case Some(order) if order.status == "paid" =>
                 repository.updateStatus(id, "shipping").map { _ =>
-                  // Simulate shipping process (1-3 seconds) - schedule completion
-                  val delay = (1000 + scala.util.Random.nextInt(2000)).milliseconds
-                  context.scheduleOnce(delay, context.self, CompleteOrder(id, context.system.ignoreRef))
+                  // Order is now in shipping status, waiting for admin to confirm completion
                   true
                 }
               case Some(order) =>
@@ -318,7 +316,7 @@ object OrderActor {
           
           context.pipeToSelf(shipping) {
             case Success(_) =>
-              replyTo ! OrderShipped(s"Order $id is now being shipped")
+              replyTo ! OrderShipped(s"Order $id is now being shipped and awaiting completion confirmation")
               null
             case Failure(ex) =>
               replyTo ! OrderError(ex.getMessage)

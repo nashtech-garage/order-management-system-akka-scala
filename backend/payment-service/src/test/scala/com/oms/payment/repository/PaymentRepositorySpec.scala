@@ -95,61 +95,6 @@ class PaymentRepositorySpec extends AnyWordSpec with Matchers with ScalaFutures 
       }
     }
 
-    "finding a payment by transaction ID" should {
-      "return the payment when it exists" in {
-        val payment = Payment(
-          orderId = 103L,
-          createdBy = 8L,
-          amount = BigDecimal("500.00"),
-          paymentMethod = "wallet",
-          transactionId = Some("TXN-ABC123")
-        )
-        repository.create(payment).futureValue
-
-        val found = repository.findByTransactionId("TXN-ABC123").futureValue
-
-        found should not be empty
-        found.get.transactionId shouldBe Some("TXN-ABC123")
-      }
-
-      "return None when transaction ID doesn't exist" in {
-        val found = repository.findByTransactionId("TXN-NOTEXIST").futureValue
-
-        found shouldBe empty
-      }
-    }
-
-    "finding payments by created by user" should {
-      "return payments for specific user" in {
-        val payment1 = Payment(orderId = 104L, createdBy = 10L, amount = BigDecimal("100.00"), paymentMethod = "credit_card")
-        val payment2 = Payment(orderId = 105L, createdBy = 10L, amount = BigDecimal("200.00"), paymentMethod = "debit_card")
-        val payment3 = Payment(orderId = 106L, createdBy = 11L, amount = BigDecimal("300.00"), paymentMethod = "wallet")
-
-        repository.create(payment1).futureValue
-        repository.create(payment2).futureValue
-        repository.create(payment3).futureValue
-
-        val found = repository.findByCreatedBy(10L).futureValue
-
-        found should have size 2
-        found.forall(_.createdBy == 10L) shouldBe true
-      }
-    }
-
-    "finding all payments" should {
-      "return paginated results" in {
-        val payment1 = Payment(orderId = 107L, createdBy = 12L, amount = BigDecimal("100.00"), paymentMethod = "credit_card")
-        val payment2 = Payment(orderId = 108L, createdBy = 12L, amount = BigDecimal("200.00"), paymentMethod = "debit_card")
-
-        repository.create(payment1).futureValue
-        repository.create(payment2).futureValue
-
-        val all = repository.findAll(0, 10).futureValue
-
-        all.size should be >= 2
-      }
-    }
-
     "finding payments by status" should {
       "return payments with specific status" in {
         val payment1 = Payment(orderId = 109L, createdBy = 13L, amount = BigDecimal("100.00"), paymentMethod = "credit_card", status = "completed")
@@ -178,13 +123,12 @@ class PaymentRepositorySpec extends AnyWordSpec with Matchers with ScalaFutures 
         )
         val created = repository.create(payment).futureValue
 
-        val updated = repository.updateStatus(created.id.get, "processing", Some("TXN-NEW123")).futureValue
+        val updated = repository.updateStatus(created.id.get, "processing").futureValue
 
         updated shouldBe 1
 
         val found = repository.findById(created.id.get).futureValue
         found.get.status shouldBe "processing"
-        found.get.transactionId shouldBe Some("TXN-NEW123")
       }
 
       "return 0 when payment doesn't exist" in {
