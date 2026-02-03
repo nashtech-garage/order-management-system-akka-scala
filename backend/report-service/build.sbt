@@ -5,6 +5,7 @@ val ScalaTestVersion = "3.2.17"
 val SlickVersion = "3.4.1"
 val PostgresVersion = "42.6.0"
 val FlywayVersion = "9.22.3"
+val MockitoScalaVersion = "1.17.30"
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.13.17",
@@ -45,7 +46,9 @@ lazy val `report-service` = (project in file("."))
       // Test dependencies
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test
+      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
+      "org.mockito" %% "mockito-scala" % MockitoScalaVersion % Test,
+      "org.mockito" %% "mockito-scala-scalatest" % MockitoScalaVersion % Test
     )
   )
   .dependsOn(commonRef)

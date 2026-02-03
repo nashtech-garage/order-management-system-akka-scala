@@ -134,13 +134,14 @@ object ReportActor {
           
         // New handlers for scheduled reports
         case GenerateAndSaveScheduledReport(reportDate, replyTo) =>
-          context.log.info(s"Generating scheduled report for date: $reportDate")
+          val log = context.log
+          log.info(s"Generating scheduled report for date: $reportDate")
           
           val reportFuture = for {
             // Check if report already exists
             exists <- repository.reportExists(reportDate, "daily")
             result <- if (exists) {
-              context.log.warn(s"Report for $reportDate already exists, skipping generation")
+              log.warn(s"Report for $reportDate already exists, skipping generation")
               scala.concurrent.Future.successful(None)
             } else {
               // Generate report data

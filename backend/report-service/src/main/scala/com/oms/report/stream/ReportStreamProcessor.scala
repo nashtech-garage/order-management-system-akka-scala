@@ -1,7 +1,7 @@
 package com.oms.report.stream
 
 import akka.NotUsed
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.{Flow, Sink}
 import com.oms.report.client.{OrderData, ReportServiceClient}
 import com.oms.report.model._
 
@@ -13,7 +13,6 @@ class ReportStreamProcessor(
   serviceClient: ReportServiceClient
 )(implicit ec: ExecutionContext) {
   
-  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   
   // Generate sales report using streams
   def generateSalesReport(startDate: LocalDateTime, endDate: LocalDateTime): Future[SalesReport] = {

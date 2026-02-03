@@ -17,13 +17,7 @@ trait JsonSupport extends DefaultJsonProtocol {
     }
   }
   
-  implicit object BigDecimalFormat extends RootJsonFormat[BigDecimal] {
-    def write(bd: BigDecimal): JsValue = JsNumber(bd)
-    def read(value: JsValue): BigDecimal = value match {
-      case JsNumber(n) => n
-      case _ => throw DeserializationException("Expected BigDecimal as JsNumber")
-    }
-  }
+
 }
 
 // Standard API Response wrapper

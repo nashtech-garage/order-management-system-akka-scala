@@ -3,6 +3,7 @@ package com.oms.report.repository
 import com.oms.report.model.ScheduledReport
 import slick.jdbc.PostgresProfile.api._
 import spray.json._
+import DefaultJsonProtocol._
 
 import scala.concurrent.{ExecutionContext, Future}
 import java.sql.{Date, Timestamp}

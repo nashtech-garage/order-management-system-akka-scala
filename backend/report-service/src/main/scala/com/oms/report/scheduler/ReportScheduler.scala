@@ -30,10 +30,10 @@ object ReportScheduler {
           
           // Schedule the recurring report generation
           timers.startTimerWithFixedDelay(
-            key = "scheduled-report-generation",
-            msg = GenerateScheduledReport,
-            delay = initialDelay,
-            interval = interval
+            "scheduled-report-generation",
+            GenerateScheduledReport,
+            initialDelay,
+            interval
           )
         } else {
           context.log.info("Report scheduler is disabled")
