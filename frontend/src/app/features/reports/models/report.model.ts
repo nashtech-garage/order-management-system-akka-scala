@@ -5,8 +5,8 @@ export interface ScheduledReport {
   totalOrders: number;
   totalRevenue: number;
   averageOrderValue: number;
-  ordersByStatus: { [key: string]: number };
-  metadata: { [key: string]: string };
+  ordersByStatus: Record<string, number>;
+  metadata: Record<string, string>;
   generatedAt: string;
 }
 
