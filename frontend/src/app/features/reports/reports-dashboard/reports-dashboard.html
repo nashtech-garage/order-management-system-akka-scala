@@ -6,16 +6,10 @@
         <span class="icon">📊</span>
         Reports Dashboard
       </h1>
-      <p class="dashboard-subtitle">
-        Comprehensive analytics and insights for your business
-      </p>
+      <p class="dashboard-subtitle">Comprehensive analytics and insights for your business</p>
     </div>
     <div class="header-actions">
-      <button
-        class="btn-generate"
-        (click)="generateReport()"
-        [disabled]="generating"
-      >
+      <button class="btn-generate" (click)="generateReport()" [disabled]="generating">
         <span class="btn-icon">{{ generating ? '⏳' : '✨' }}</span>
         {{ generating ? 'Generating...' : 'Generate Report' }}
       </button>

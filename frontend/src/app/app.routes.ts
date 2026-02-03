@@ -134,7 +134,9 @@ export const routes: Routes = [
       {
         path: '',
         loadComponent: () =>
-          import('@features/reports/reports-dashboard/reports-dashboard').then((m) => m.ReportsDashboard),
+          import('@features/reports/reports-dashboard/reports-dashboard').then(
+            (m) => m.ReportsDashboard,
+          ),
       },
       {
         path: 'list',

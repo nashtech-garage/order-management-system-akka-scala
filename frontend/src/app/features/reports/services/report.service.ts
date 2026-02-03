@@ -3,84 +3,76 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
-    ScheduledReport,
-    ReportListResponse,
-    DashboardSummary,
-    DailyStats,
+  ScheduledReport,
+  ReportListResponse,
+  DashboardSummary,
+  DailyStats,
 } from '../models/report.model';
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class ReportService {
-    private apiUrl = `${environment.apiUrl}/reports`;
+  private apiUrl = `${environment.apiUrl}/reports`;
 
-    constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
-    /**
-     * Get paginated list of scheduled reports
-     */
-    getScheduledReports(
-        page: number = 0,
-        pageSize: number = 20,
-        startDate?: string,
-        endDate?: string
-    ): Observable<ReportListResponse> {
-        let params = new HttpParams()
-            .set('page', page.toString())
-            .set('pageSize', pageSize.toString());
+  /**
+   * Get paginated list of scheduled reports
+   */
+  getScheduledReports(
+    page = 0,
+    pageSize = 20,
+    startDate?: string,
+    endDate?: string,
+  ): Observable<ReportListResponse> {
+    let params = new HttpParams().set('page', page.toString()).set('pageSize', pageSize.toString());
 
-        if (startDate) {
-            params = params.set('startDate', startDate);
-        }
-        if (endDate) {
-            params = params.set('endDate', endDate);
-        }
-
-        return this.http.get<ReportListResponse>(
-            `${this.apiUrl}/scheduled`,
-            { params }
-        );
+    if (startDate) {
+      params = params.set('startDate', startDate);
+    }
+    if (endDate) {
+      params = params.set('endDate', endDate);
     }
 
-    /**
-     * Get a specific scheduled report by ID
-     */
-    getScheduledReportById(id: number): Observable<ScheduledReport> {
-        return this.http.get<ScheduledReport>(`${this.apiUrl}/scheduled/${id}`);
-    }
+    return this.http.get<ReportListResponse>(`${this.apiUrl}/scheduled`, { params });
+  }
 
-    /**
-     * Get the latest scheduled report
-     */
-    getLatestReport(): Observable<ScheduledReport> {
-        return this.http.get<ScheduledReport>(`${this.apiUrl}/scheduled/latest`);
-    }
+  /**
+   * Get a specific scheduled report by ID
+   */
+  getScheduledReportById(id: number): Observable<ScheduledReport> {
+    return this.http.get<ScheduledReport>(`${this.apiUrl}/scheduled/${id}`);
+  }
 
-    /**
-     * Manually trigger report generation
-     */
-    generateReport(): Observable<ScheduledReport> {
-        return this.http.post<ScheduledReport>(
-            `${this.apiUrl}/scheduled/generate`,
-            {}
-        );
-    }
+  /**
+   * Get the latest scheduled report
+   */
+  getLatestReport(): Observable<ScheduledReport> {
+    return this.http.get<ScheduledReport>(`${this.apiUrl}/scheduled/latest`);
+  }
 
-    /**
-     * Get dashboard summary
-     */
-    getDashboardSummary(): Observable<DashboardSummary> {
-        return this.http.get<DashboardSummary>(`${this.apiUrl}/dashboard`);
-    }
+  /**
+   * Manually trigger report generation
+   */
+  generateReport(): Observable<ScheduledReport> {
+    return this.http.post<ScheduledReport>(`${this.apiUrl}/scheduled/generate`, {});
+  }
 
-    /**
-     * Get daily statistics
-     */
-    getDailyStats(days: number = 30): Observable<DailyStats[]> {
-        const params = new HttpParams().set('days', days.toString());
-        return this.http.get<DailyStats[]>(`${this.apiUrl}/daily-stats`, {
-            params,
-        });
-    }
+  /**
+   * Get dashboard summary
+   */
+  getDashboardSummary(): Observable<DashboardSummary> {
+    return this.http.get<DashboardSummary>(`${this.apiUrl}/dashboard`);
+  }
+
+  /**
+   * Get daily statistics
+   */
+  getDailyStats(days = 30): Observable<DailyStats[]> {
+    const params = new HttpParams().set('days', days.toString());
+    return this.http.get<DailyStats[]>(`${this.apiUrl}/daily-stats`, {
+      params,
+    });
+  }
 }
