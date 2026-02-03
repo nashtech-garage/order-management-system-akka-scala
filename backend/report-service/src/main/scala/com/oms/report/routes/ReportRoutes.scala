@@ -12,21 +12,33 @@ import com.oms.report.actor.ReportActor
 import com.oms.report.actor.ReportActor._
 import com.oms.report.model._
 import spray.json._
+import spray.json.DefaultJsonProtocol._
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
 
 import scala.concurrent.duration._
 
-trait ReportJsonFormats extends JsonSupport {
-  implicit val salesReportFormat: RootJsonFormat[SalesReport] = new RootJsonFormat[SalesReport] {
-    def write(r: SalesReport): JsObject = JsObject(
-      "startDate" -> r.startDate.toString.toJson,
-      "endDate" -> r.endDate.toString.toJson,
-      "totalOrders" -> r.totalOrders.toJson,
-      "totalRevenue" -> r.totalRevenue.toJson,
-      "averageOrderValue" -> r.averageOrderValue.toJson,
-      "ordersByStatus" -> r.ordersByStatus.toJson
-    )
-    def read(value: JsValue): SalesReport = throw DeserializationException("Not supported")
+trait ReportJsonFormats {
+  
+  implicit val localDateTimeFormat: RootJsonFormat[LocalDateTime] = new RootJsonFormat[LocalDateTime] {
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+    def write(x: LocalDateTime) = JsString(x.format(formatter))
+    def read(value: JsValue) = value match {
+      case JsString(s) => LocalDateTime.parse(s, formatter)
+      case _ => throw DeserializationException("Expected ISO LocalDateTime string")
+    }
   }
+  
+  implicit val localDateFormat: RootJsonFormat[LocalDate] = new RootJsonFormat[LocalDate] {
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+    def write(x: LocalDate) = JsString(x.format(formatter))
+    def read(value: JsValue) = value match {
+      case JsString(s) => LocalDate.parse(s, formatter)
+      case _ => throw DeserializationException("Expected ISO LocalDate string")
+    }
+  }
+
+  implicit val salesReportFormat: RootJsonFormat[SalesReport] = jsonFormat6(SalesReport)
   implicit val productReportFormat: RootJsonFormat[ProductReport] = jsonFormat4(ProductReport)
   implicit val customerReportFormat: RootJsonFormat[CustomerReport] = jsonFormat4(CustomerReport)
   implicit val dailyStatsFormat: RootJsonFormat[DailyStats] = jsonFormat3(DailyStats)
@@ -34,20 +46,7 @@ trait ReportJsonFormats extends JsonSupport {
   implicit val dashboardSummaryFormat: RootJsonFormat[DashboardSummary] = jsonFormat5(DashboardSummary)
   
   // New formatters for scheduled reports
-  implicit val scheduledReportFormat: RootJsonFormat[ScheduledReport] = new RootJsonFormat[ScheduledReport] {
-    def write(r: ScheduledReport): JsObject = JsObject(
-      "id" -> r.id.toJson,
-      "reportType" -> r.reportType.toJson,
-      "reportDate" -> r.reportDate.toString.toJson,
-      "totalOrders" -> r.totalOrders.toJson,
-      "totalRevenue" -> r.totalRevenue.toJson,
-      "averageOrderValue" -> r.averageOrderValue.toJson,
-      "ordersByStatus" -> r.ordersByStatus.toJson,
-      "metadata" -> r.metadata.toJson,
-      "generatedAt" -> r.generatedAt.toString.toJson
-    )
-    def read(value: JsValue): ScheduledReport = throw DeserializationException("Not supported")
-  }
+  implicit val scheduledReportFormat: RootJsonFormat[ScheduledReport] = jsonFormat9(ScheduledReport)
   implicit val reportListResponseFormat: RootJsonFormat[ReportListResponse] = jsonFormat4(ReportListResponse)
 }
 
