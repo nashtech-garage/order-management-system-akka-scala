@@ -30,13 +30,13 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
+  <div *ngIf="loading" class="loading">
     <div class="spinner"></div>
     <p>Loading reports...</p>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error" class="error-container">
+  <div *ngIf="error" class="error">
     <span class="error-icon">⚠️</span>
     <p>{{ error }}</p>
     <button class="btn-retry" (click)="loadReports()">Retry</button>
@@ -91,11 +91,12 @@
 
     <!-- Pagination -->
     <div *ngIf="reports.length > 0" class="pagination">
-      <button class="btn-page" (click)="previousPage()" [disabled]="page === 0">← Previous</button>
+      <button class="btn-page" (click)="previousPage()" [disabled]="page === 0" aria-label="Previous page">←
+        Previous</button>
       <span class="page-info">
         Page {{ page + 1 }} of {{ getTotalPages() }} ({{ total }} total reports)
       </span>
-      <button class="btn-page" (click)="nextPage()" [disabled]="(page + 1) * pageSize >= total">
+      <button class="btn-page" (click)="nextPage()" [disabled]="(page + 1) * pageSize >= total" aria-label="Next page">
         Next →
       </button>
     </div>

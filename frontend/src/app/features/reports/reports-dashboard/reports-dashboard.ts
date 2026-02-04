@@ -74,7 +74,7 @@ export class ReportsDashboard implements OnInit {
       },
       error: (err) => {
         this.generating = false;
-        alert('Failed to generate report: ' + err.error?.error || err.message);
+        alert('Failed to generate report: ' + (err.error?.error || err.message));
         console.error('Error generating report:', err);
       },
     });

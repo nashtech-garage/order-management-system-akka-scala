@@ -135,7 +135,9 @@
 }
 
 .loading-container,
-.error-container {
+.loading,
+.error-container,
+.error {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 20px;
@@ -160,7 +162,8 @@
   }
 }
 
-.error-container {
+.error-container,
+.error {
   color: #e53e3e;
 
   .error-icon {

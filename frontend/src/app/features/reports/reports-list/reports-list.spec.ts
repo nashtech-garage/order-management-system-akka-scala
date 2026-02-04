@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReportsList } from './reports-list';
 import { ReportService } from '../services/report.service';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { ScheduledReport, ReportListResponse } from '../models/report.model';
 import { provideRouter } from '@angular/router';
 
@@ -44,6 +44,7 @@ describe('ReportsList', () => {
 
   beforeEach(async () => {
     mockReportService = jasmine.createSpyObj('ReportService', ['getScheduledReports']);
+    mockReportService.getScheduledReports.and.returnValue(of(mockReportListResponse));
 
     await TestBed.configureTestingModule({
       imports: [ReportsList],
@@ -75,11 +76,13 @@ describe('ReportsList', () => {
 
   describe('loadReports', () => {
     it('should set loading to true initially', () => {
-      mockReportService.getScheduledReports.and.returnValue(of(mockReportListResponse));
+      const subject = new Subject<ReportListResponse>();
+      mockReportService.getScheduledReports.and.returnValue(subject.asObservable());
 
       component.loadReports();
 
       expect(component.loading).toBe(true);
+      subject.next(mockReportListResponse);
     });
 
     it('should load reports successfully', () => {
@@ -341,19 +344,23 @@ describe('ReportsList', () => {
 
   describe('DOM rendering', () => {
     it('should display loading state', () => {
-      component.loading = true;
-      fixture.detectChanges();
+      const subject = new Subject<ReportListResponse>();
+      mockReportService.getScheduledReports.and.returnValue(subject.asObservable());
+
+      fixture.detectChanges(); // Triggers ngOnInit
 
       const compiled = fixture.nativeElement as HTMLElement;
       const loadingElement = compiled.querySelector('.loading');
 
       expect(loadingElement).toBeTruthy();
+      subject.next(mockReportListResponse);
     });
 
     it('should display error message', () => {
-      component.error = 'Failed to load reports';
-      component.loading = false;
-      fixture.detectChanges();
+      const errorResponse = { status: 500, message: 'Server error' };
+      mockReportService.getScheduledReports.and.returnValue(throwError(() => errorResponse));
+
+      fixture.detectChanges(); // Triggers ngOnInit
 
       const compiled = fixture.nativeElement as HTMLElement;
       const errorElement = compiled.querySelector('.error');
@@ -365,8 +372,7 @@ describe('ReportsList', () => {
     it('should display reports when loaded', () => {
       mockReportService.getScheduledReports.and.returnValue(of(mockReportListResponse));
 
-      component.ngOnInit();
-      fixture.detectChanges();
+      fixture.detectChanges(); // Triggers ngOnInit
 
       const compiled = fixture.nativeElement as HTMLElement;
 
@@ -383,8 +389,7 @@ describe('ReportsList', () => {
       };
       mockReportService.getScheduledReports.and.returnValue(of(emptyResponse));
 
-      component.ngOnInit();
-      fixture.detectChanges();
+      fixture.detectChanges(); // Triggers ngOnInit
 
       const compiled = fixture.nativeElement as HTMLElement;
       const emptyElement = compiled.querySelector('.empty-state');
