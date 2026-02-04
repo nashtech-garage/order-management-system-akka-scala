@@ -37,13 +37,8 @@ export class AuthService {
     );
   }
 
-  register(userData: RegisterRequest): Observable<LoginResponse> {
-    return this.apiService.post<LoginResponse>(API_ENDPOINTS.AUTH.REGISTER, userData).pipe(
-      tap((response) => {
-        this.setToken(response.token);
-        this.currentUser.set(response.user);
-      }),
-    );
+  register(userData: RegisterRequest): Observable<User> {
+    return this.apiService.post<User>(API_ENDPOINTS.AUTH.REGISTER, userData);
   }
 
   getToken(): string | null {
