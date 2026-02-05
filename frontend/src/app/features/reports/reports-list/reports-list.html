@@ -91,12 +91,23 @@
 
     <!-- Pagination -->
     <div *ngIf="reports.length > 0" class="pagination">
-      <button class="btn-page" (click)="previousPage()" [disabled]="page === 0" aria-label="Previous page">←
-        Previous</button>
+      <button
+        class="btn-page"
+        (click)="previousPage()"
+        [disabled]="page === 0"
+        aria-label="Previous page"
+      >
+        ← Previous
+      </button>
       <span class="page-info">
         Page {{ page + 1 }} of {{ getTotalPages() }} ({{ total }} total reports)
       </span>
-      <button class="btn-page" (click)="nextPage()" [disabled]="(page + 1) * pageSize >= total" aria-label="Next page">
+      <button
+        class="btn-page"
+        (click)="nextPage()"
+        [disabled]="(page + 1) * pageSize >= total"
+        aria-label="Next page"
+      >
         Next →
       </button>
     </div>
