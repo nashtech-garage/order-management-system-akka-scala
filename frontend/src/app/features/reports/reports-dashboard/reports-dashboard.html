@@ -90,7 +90,11 @@
       <div class="status-breakdown">
         <h3 class="breakdown-title">Orders by Status</h3>
         <div class="status-grid">
-          <div *ngFor="let status of getOrderStatusKeys()" class="status-item" [class]="'status-' + status">
+          <div
+            *ngFor="let status of getOrderStatusKeys()"
+            class="status-item"
+            [class]="'status-' + status"
+          >
             <div class="status-label">{{ status | titlecase }}</div>
             <div class="status-count">
               {{ latestReport.ordersByStatus[status] }}
@@ -111,7 +115,10 @@
         <div class="summary-card">
           <h4>Top Products</h4>
           <div class="product-list">
-            <div *ngFor="let product of dashboardSummary.topProducts; let i = index" class="product-item">
+            <div
+              *ngFor="let product of dashboardSummary.topProducts; let i = index"
+              class="product-item"
+            >
               <span class="rank">{{ i + 1 }}</span>
               <div class="product-info">
                 <p class="product-name">{{ product.productName }}</p>
@@ -130,7 +137,10 @@
         <div class="summary-card">
           <h4>Top Customers</h4>
           <div class="customer-list">
-            <div *ngFor="let customer of dashboardSummary.topCustomers; let i = index" class="customer-item">
+            <div
+              *ngFor="let customer of dashboardSummary.topCustomers; let i = index"
+              class="customer-item"
+            >
               <span class="rank">{{ i + 1 }}</span>
               <div class="customer-info">
                 <p class="customer-name">{{ customer.customerName }}</p>
@@ -157,8 +167,11 @@
       <div class="chart-container">
         <div class="simple-chart">
           <div *ngFor="let stat of dailyStats" class="chart-bar">
-            <div class="bar" [style.height.%]="(stat.revenue / getMaxRevenue()) * 100"
-              [title]="formatDate(stat.date) + ': ' + formatCurrency(stat.revenue)"></div>
+            <div
+              class="bar"
+              [style.height.%]="(stat.revenue / getMaxRevenue()) * 100"
+              [title]="formatDate(stat.date) + ': ' + formatCurrency(stat.revenue)"
+            ></div>
             <span class="bar-label">{{ stat.date.substring(5) }}</span>
           </div>
         </div>
