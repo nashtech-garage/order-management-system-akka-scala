@@ -266,9 +266,7 @@ describe('OrderList', () => {
 
       component.cancelOrder(1);
 
-      expect(window.confirm).toHaveBeenCalledWith(
-        'Are you sure you want to cancel this order?',
-      );
+      expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to cancel this order?');
       expect(mockOrderService.cancelOrder).toHaveBeenCalledWith(1);
       expect(window.alert).toHaveBeenCalledWith('Order cancelled successfully!');
       expect(mockOrderService.getOrders).toHaveBeenCalled();

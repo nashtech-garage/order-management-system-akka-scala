@@ -4,7 +4,6 @@ import { of, throwError } from 'rxjs';
 import { OrderDetail } from './order-detail';
 import { OrderService } from '../order.service';
 import { Order, OrderStatus } from '@shared/models/order.model';
-import { signal } from '@angular/core';
 
 describe('OrderDetail', () => {
   let component: OrderDetail;
@@ -244,9 +243,7 @@ describe('OrderDetail', () => {
 
       component.cancelOrder();
 
-      expect(window.confirm).toHaveBeenCalledWith(
-        'Are you sure you want to cancel this order?',
-      );
+      expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to cancel this order?');
       expect(mockOrderService.cancelOrder).toHaveBeenCalledWith(1);
       expect(window.alert).toHaveBeenCalledWith('Order cancelled successfully!');
     });

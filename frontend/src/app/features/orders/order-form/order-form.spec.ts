@@ -117,24 +117,16 @@ describe('OrderForm', () => {
 
       fixture.detectChanges();
 
-      expect(console.error).toHaveBeenCalledWith(
-        'Failed to load customers:',
-        jasmine.any(Error),
-      );
+      expect(console.error).toHaveBeenCalledWith('Failed to load customers:', jasmine.any(Error));
     });
 
     it('should handle error when loading products fails', () => {
       spyOn(console, 'error');
-      mockProductService.getProducts.and.returnValue(
-        throwError(() => new Error('Failed to load')),
-      );
+      mockProductService.getProducts.and.returnValue(throwError(() => new Error('Failed to load')));
 
       fixture.detectChanges();
 
-      expect(console.error).toHaveBeenCalledWith(
-        'Failed to load products:',
-        jasmine.any(Error),
-      );
+      expect(console.error).toHaveBeenCalledWith('Failed to load products:', jasmine.any(Error));
     });
   });
 
@@ -153,11 +145,11 @@ describe('OrderForm', () => {
       const firstItem = component.items.at(0);
       firstItem.get('productId')?.markAsTouched();
       expect(firstItem.get('productId')?.hasError('required')).toBeTrue();
-      
+
       // Quantity has default value of 1, so it's valid initially
       expect(firstItem.get('quantity')?.value).toBe(1);
       expect(firstItem.get('quantity')?.valid).toBeTrue();
-      
+
       // But if we clear it, it should be invalid
       firstItem.get('quantity')?.setValue(null);
       firstItem.get('quantity')?.markAsTouched();

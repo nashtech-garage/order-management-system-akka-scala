@@ -3,7 +3,13 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { OrderService } from './order.service';
 import { API_ENDPOINTS } from '@core/constants/api-endpoints';
-import { Order, CreateOrderRequest, PaymentInfo, OrderStats, OrderStatus } from '@shared/models/order.model';
+import {
+  Order,
+  CreateOrderRequest,
+  PaymentInfo,
+  OrderStats,
+  OrderStatus,
+} from '@shared/models/order.model';
 import { environment } from '@environments/environment';
 
 describe('OrderService', () => {
@@ -77,9 +83,7 @@ describe('OrderService', () => {
         expect(orders).toEqual(mockOrders);
       });
 
-      const req = httpMock.expectOne(
-        `${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?status=PENDING`,
-      );
+      const req = httpMock.expectOne(`${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?status=PENDING`);
       expect(req.request.method).toBe('GET');
       req.flush(mockOrders);
     });
@@ -89,9 +93,7 @@ describe('OrderService', () => {
         expect(orders).toEqual(mockOrders);
       });
 
-      const req = httpMock.expectOne(
-        `${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?customerId=1`,
-      );
+      const req = httpMock.expectOne(`${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?customerId=1`);
       expect(req.request.method).toBe('GET');
       req.flush(mockOrders);
     });
@@ -101,9 +103,7 @@ describe('OrderService', () => {
         expect(orders).toEqual(mockOrders);
       });
 
-      const req = httpMock.expectOne(
-        `${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?offset=10&limit=20`,
-      );
+      const req = httpMock.expectOne(`${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?offset=10&limit=20`);
       expect(req.request.method).toBe('GET');
       req.flush(mockOrders);
     });
@@ -142,9 +142,7 @@ describe('OrderService', () => {
         expect(orders).toEqual(mockOrders);
       });
 
-      const req = httpMock.expectOne(
-        `${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?customerId=1`,
-      );
+      const req = httpMock.expectOne(`${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?customerId=1`);
       expect(req.request.method).toBe('GET');
       req.flush(mockOrders);
     });
@@ -156,9 +154,7 @@ describe('OrderService', () => {
         expect(orders).toEqual(mockOrders);
       });
 
-      const req = httpMock.expectOne(
-        `${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?status=PENDING`,
-      );
+      const req = httpMock.expectOne(`${apiUrl}${API_ENDPOINTS.ORDERS.BASE}?status=PENDING`);
       expect(req.request.method).toBe('GET');
       req.flush(mockOrders);
     });
