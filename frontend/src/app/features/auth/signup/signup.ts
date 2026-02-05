@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@features/auth/auth.service';
 import { Button } from '@app/shared/components/button/button';
+import { RegisterRequest } from '@shared/models/user.model';
 
 @Component({
   selector: 'app-signup',
@@ -49,37 +50,25 @@ export class Signup {
 
       const formValue = this.signupForm.value;
       const userData = {
-        firstName: formValue.firstName,
-        lastName: formValue.lastName,
         email: formValue.email,
         username: formValue.username,
         password: formValue.password,
       };
 
-      this.authService
-        .register(
-          userData as {
-            firstName: string;
-            lastName: string;
-            email: string;
-            username: string;
-            password: string;
-          },
-        )
-        .subscribe({
-          next: () => {
-            this.isLoading.set(false);
-            this.signupForm.enable();
-            this.router.navigate(['/dashboard']);
-          },
-          error: (error) => {
-            this.isLoading.set(false);
-            this.signupForm.enable();
-            const message = error.error?.message || 'Registration failed. Please try again.';
-            this.errorMessage.set(message);
-            console.error('Signup failed', error);
-          },
-        });
+      this.authService.register(userData as RegisterRequest).subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.signupForm.enable();
+          this.router.navigate(['/dashboard']);
+        },
+        error: (error) => {
+          this.isLoading.set(false);
+          this.signupForm.enable();
+          const message = error.error?.message || 'Registration failed. Please try again.';
+          this.errorMessage.set(message);
+          console.error('Signup failed', error);
+        },
+      });
     }
   }
 }
