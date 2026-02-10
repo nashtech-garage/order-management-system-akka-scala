@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { PaymentService } from '../payment.service';
 import { OrderService } from '@features/orders/order.service';
 import { Order } from '@shared/models/order.model';
+import { ToastService } from '@shared/services/toast.service';
 
 @Component({
   selector: 'app-payment-form',
@@ -18,6 +19,7 @@ export class PaymentForm implements OnInit {
   private paymentService = inject(PaymentService);
   private orderService = inject(OrderService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   paymentForm!: FormGroup;
   loading = signal(false);
@@ -66,7 +68,7 @@ export class PaymentForm implements OnInit {
 
   onSubmit() {
     // This form is no longer used - payments are created from order page
-    alert('Payment creation is now handled from the Order Management page');
+    this.toastService.info('Payment creation is now handled from the Order Management page');
     this.router.navigate(['/orders']);
   }
 

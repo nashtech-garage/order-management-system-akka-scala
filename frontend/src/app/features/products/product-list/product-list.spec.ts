@@ -6,12 +6,16 @@ import { of, throwError } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ProductResponse } from '@shared/models/product.model';
+import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 
 describe('ProductList', () => {
   let component: ProductList;
   let fixture: ComponentFixture<ProductList>;
   let mockProductService: jasmine.SpyObj<ProductService>;
   let mockRouter: jasmine.SpyObj<Router>;
+  let mockToastService: jasmine.SpyObj<ToastService>;
+  let mockConfirmationDialog: jasmine.SpyObj<ConfirmationDialogService>;
 
   const mockProducts: ProductResponse[] = [
     {
@@ -46,12 +50,25 @@ describe('ProductList', () => {
       'deleteProduct',
     ]);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockToastService = jasmine.createSpyObj('ToastService', [
+      'success',
+      'error',
+      'warning',
+      'info',
+    ]);
+    mockConfirmationDialog = jasmine.createSpyObj('ConfirmationDialogService', [
+      'confirmAction',
+      'confirmDelete',
+      'confirmWarning',
+    ]);
 
     await TestBed.configureTestingModule({
       imports: [ProductList],
       providers: [
         { provide: ProductService, useValue: mockProductService },
         { provide: Router, useValue: mockRouter },
+        { provide: ToastService, useValue: mockToastService },
+        { provide: ConfirmationDialogService, useValue: mockConfirmationDialog },
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
@@ -176,17 +193,22 @@ describe('ProductList', () => {
     });
 
     it('should delete product and reload list on confirmation', () => {
-      spyOn(window, 'confirm').and.returnValue(true);
+      mockConfirmationDialog.confirmDelete.and.returnValue(of(true));
       mockProductService.deleteProduct.and.returnValue(of({ message: 'Deleted' }));
 
       component.deleteProduct(1);
 
+      expect(mockConfirmationDialog.confirmDelete).toHaveBeenCalledWith(
+        'Are you sure you want to delete this product?',
+        'Delete Product',
+      );
       expect(mockProductService.deleteProduct).toHaveBeenCalledWith(1);
+      expect(mockToastService.success).toHaveBeenCalledWith('Product deleted successfully');
       expect(mockProductService.getProducts).toHaveBeenCalledTimes(2); // Init + Reload
     });
 
     it('should not delete product if not confirmed', () => {
-      spyOn(window, 'confirm').and.returnValue(false);
+      mockConfirmationDialog.confirmDelete.and.returnValue(of(false));
 
       component.deleteProduct(1);
 
@@ -194,13 +216,13 @@ describe('ProductList', () => {
     });
 
     it('should handle error when delete fails', () => {
-      spyOn(window, 'confirm').and.returnValue(true);
+      mockConfirmationDialog.confirmDelete.and.returnValue(of(true));
       mockProductService.deleteProduct.and.returnValue(throwError(() => new Error('Error')));
       spyOn(console, 'error');
 
       component.deleteProduct(1);
 
-      expect(component.error()).toBe('Failed to delete product.');
+      expect(mockToastService.error).toHaveBeenCalledWith('Failed to delete product');
     });
   });
 });

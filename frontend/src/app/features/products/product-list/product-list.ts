@@ -6,6 +6,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { ProductService } from '@core/services/product.service';
 import { ProductResponse } from '@shared/models/product.model';
 import { Button } from '@shared/components/button/button';
+import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 
 @Component({
   selector: 'app-product-list',
@@ -17,6 +19,8 @@ import { Button } from '@shared/components/button/button';
 export class ProductList implements OnInit {
   private productService = inject(ProductService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
+  private confirmationDialog = inject(ConfirmationDialogService);
 
   products = signal<ProductResponse[]>([]);
   categories = signal<{ id: number; name: string; description?: string }[]>([]);
@@ -97,16 +101,21 @@ export class ProductList implements OnInit {
   }
 
   deleteProduct(id: number) {
-    if (confirm('Are you sure you want to delete this product?')) {
-      this.productService.deleteProduct(id).subscribe({
-        next: () => {
-          this.loadProducts();
-        },
-        error: (err) => {
-          this.error.set('Failed to delete product.');
-          console.error(err);
-        },
+    this.confirmationDialog
+      .confirmDelete('Are you sure you want to delete this product?', 'Delete Product')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.productService.deleteProduct(id).subscribe({
+            next: () => {
+              this.toastService.success('Product deleted successfully');
+              this.loadProducts();
+            },
+            error: (err) => {
+              this.toastService.error('Failed to delete product');
+              console.error(err);
+            },
+          });
+        }
       });
-    }
   }
 }

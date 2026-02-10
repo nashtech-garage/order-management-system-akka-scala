@@ -6,6 +6,7 @@ import { ProductService } from '@core/services/product.service';
 import { CategoryService } from '@core/services/category.service';
 import { Button } from '@shared/components/button/button';
 import { CreateProductRequest, UpdateProductRequest, Category } from '@shared/models/product.model';
+import { ToastService } from '@shared/services/toast.service';
 
 @Component({
   selector: 'app-product-form',
@@ -20,6 +21,7 @@ export class ProductForm implements OnInit {
   private categoryService = inject(CategoryService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toastService = inject(ToastService);
 
   productForm!: FormGroup;
   isEditMode = signal<boolean>(false);
@@ -131,10 +133,12 @@ export class ProductForm implements OnInit {
       next: () => {
         this.router.navigate(['/products']);
         this.isSubmitting.set(false);
+        this.toastService.success('Product created successfully!');
       },
       error: (err) => {
         this.error.set(err.error?.error || 'Failed to create product');
         this.isSubmitting.set(false);
+        this.toastService.error(err.error?.error || 'Failed to create product');
       },
     });
   }
@@ -163,10 +167,12 @@ export class ProductForm implements OnInit {
       next: () => {
         this.router.navigate(['/products']);
         this.isSubmitting.set(false);
+        this.toastService.success('Product updated successfully!');
       },
       error: (err) => {
         this.error.set(err.error?.error || 'Failed to update product');
         this.isSubmitting.set(false);
+        this.toastService.error(err.error?.error || 'Failed to update product');
       },
     });
   }

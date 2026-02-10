@@ -7,6 +7,7 @@ import { CustomerService } from '@core/services/customer.service';
 import { ProductService } from '@core/services/product.service';
 import { Customer } from '@shared/models/customer.model';
 import { ProductResponse } from '@shared/models/product.model';
+import { ToastService } from '@shared/services/toast.service';
 
 @Component({
   selector: 'app-order-form',
@@ -21,6 +22,7 @@ export class OrderForm implements OnInit {
   private customerService = inject(CustomerService);
   private productService = inject(ProductService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   customers = signal<Customer[]>([]);
   products = signal<ProductResponse[]>([]);
@@ -122,7 +124,7 @@ export class OrderForm implements OnInit {
     this.orderService.createOrder(orderRequest).subscribe({
       next: (order) => {
         this.submitting.set(false);
-        alert('Order created successfully!');
+        this.toastService.success('Order created successfully!');
         this.router.navigate(['/orders', order.id]);
       },
       error: (err) => {

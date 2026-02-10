@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductForm } from './product-form';
 import { ProductService } from '@core/services/product.service';
 import { CategoryService } from '@core/services/category.service';
+import { ToastService } from '@shared/services/toast.service';
 import { Router, ActivatedRoute, ParamMap, ActivatedRouteSnapshot } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
@@ -12,6 +13,7 @@ describe('ProductForm', () => {
   let fixture: ComponentFixture<ProductForm>;
   let mockProductService: jasmine.SpyObj<ProductService>;
   let mockCategoryService: jasmine.SpyObj<CategoryService>;
+  let mockToastService: jasmine.SpyObj<ToastService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockParamMap: jasmine.SpyObj<ParamMap>;
   let mockActivatedRoute: Partial<ActivatedRoute>;
@@ -39,6 +41,7 @@ describe('ProductForm', () => {
       'updateProduct',
     ]);
     mockCategoryService = jasmine.createSpyObj('CategoryService', ['getCategories']);
+    mockToastService = jasmine.createSpyObj('ToastService', ['success', 'error']);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
     mockParamMap = jasmine.createSpyObj('ParamMap', ['get', 'has', 'getAll', 'keys']);
     mockParamMap.get.and.returnValue(null);
@@ -53,6 +56,7 @@ describe('ProductForm', () => {
       providers: [
         { provide: ProductService, useValue: mockProductService },
         { provide: CategoryService, useValue: mockCategoryService },
+        { provide: ToastService, useValue: mockToastService },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         provideHttpClient(),
@@ -112,6 +116,7 @@ describe('ProductForm', () => {
           categoryId: 1,
         }),
       );
+      expect(mockToastService.success).toHaveBeenCalledWith('Product created successfully!');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/products']);
     });
 
@@ -130,6 +135,7 @@ describe('ProductForm', () => {
 
       expect(component.error()).toBe('Creation failed');
       expect(component.isSubmitting()).toBeFalse();
+      expect(mockToastService.error).toHaveBeenCalledWith('Creation failed');
     });
 
     it('should navigate back on cancel', () => {
@@ -178,6 +184,7 @@ describe('ProductForm', () => {
           name: 'Updated Name',
         }),
       );
+      expect(mockToastService.success).toHaveBeenCalledWith('Product updated successfully!');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/products']);
     });
   });

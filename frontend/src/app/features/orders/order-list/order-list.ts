@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { OrderService } from '../order.service';
 import { Order } from '@shared/models/order.model';
+import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 
 @Component({
   selector: 'app-order-list',
@@ -15,6 +17,8 @@ import { Order } from '@shared/models/order.model';
 export class OrderList implements OnInit {
   private orderService = inject(OrderService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
+  private confirmationDialog = inject(ConfirmationDialogService);
 
   orders = signal<Order[]>([]);
   loading = signal(false);
@@ -71,59 +75,79 @@ export class OrderList implements OnInit {
   }
 
   confirmOrder(id: number) {
-    if (confirm('Confirm this order?')) {
-      this.orderService.confirmOrder(id).subscribe({
-        next: () => {
-          alert('Order confirmed successfully!');
-          this.loadOrders();
-        },
-        error: (err) => {
-          alert('Failed to confirm order: ' + (err.error?.error || err.message));
-        },
-      });
-    }
+    this.confirmationDialog.confirmAction('Confirm this order?').subscribe((confirmed) => {
+      if (confirmed) {
+        this.orderService.confirmOrder(id).subscribe({
+          next: () => {
+            this.toastService.success('Order confirmed successfully!');
+            this.loadOrders();
+          },
+          error: (err) => {
+            this.toastService.error(
+              'Failed to confirm order: ' + (err.error?.error || err.message),
+            );
+          },
+        });
+      }
+    });
   }
 
   payOrder(id: number) {
-    if (confirm('Process payment for this order?')) {
-      this.orderService.payOrder(id, 'credit_card').subscribe({
-        next: (paymentInfo) => {
-          alert(`Payment ${paymentInfo.status}: ${paymentInfo.message}`);
-          this.loadOrders();
-        },
-        error: (err) => {
-          alert('Payment failed: ' + (err.error?.error || err.message));
-        },
+    this.confirmationDialog
+      .confirmAction('Process payment for this order?')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.orderService.payOrder(id, 'credit_card').subscribe({
+            next: (paymentInfo) => {
+              this.toastService.success(`Payment ${paymentInfo.status}: ${paymentInfo.message}`);
+              this.loadOrders();
+            },
+            error: (err) => {
+              this.toastService.error('Payment failed: ' + (err.error?.error || err.message));
+            },
+          });
+        }
       });
-    }
   }
 
   cancelOrder(id: number) {
-    if (confirm('Are you sure you want to cancel this order?')) {
-      this.orderService.cancelOrder(id).subscribe({
-        next: () => {
-          alert('Order cancelled successfully!');
-          this.loadOrders();
-        },
-        error: (err) => {
-          alert('Failed to cancel order: ' + (err.error?.error || err.message));
-        },
+    this.confirmationDialog
+      .confirmWarning('Are you sure you want to cancel this order?', 'Cancel Order')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.orderService.cancelOrder(id).subscribe({
+            next: () => {
+              this.toastService.success('Order cancelled successfully!');
+              this.loadOrders();
+            },
+            error: (err) => {
+              this.toastService.error(
+                'Failed to cancel order: ' + (err.error?.error || err.message),
+              );
+            },
+          });
+        }
       });
-    }
   }
 
   completeOrder(id: number) {
-    if (confirm('Mark this order as completed?')) {
-      this.orderService.completeOrder(id).subscribe({
-        next: () => {
-          alert('Order completed successfully!');
-          this.loadOrders();
-        },
-        error: (err) => {
-          alert('Failed to complete order: ' + (err.error?.error || err.message));
-        },
+    this.confirmationDialog
+      .confirmAction('Mark this order as completed?')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.orderService.completeOrder(id).subscribe({
+            next: () => {
+              this.toastService.success('Order completed successfully!');
+              this.loadOrders();
+            },
+            error: (err) => {
+              this.toastService.error(
+                'Failed to complete order: ' + (err.error?.error || err.message),
+              );
+            },
+          });
+        }
       });
-    }
   }
 
   currentPage() {

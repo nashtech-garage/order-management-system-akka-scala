@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ReportService } from '../services/report.service';
 import { DashboardSummary, ScheduledReport, DailyStats } from '../models/report.model';
+import { ToastService } from '@shared/services/toast.service';
 
 @Component({
   selector: 'app-reports-dashboard',
@@ -12,14 +13,15 @@ import { DashboardSummary, ScheduledReport, DailyStats } from '../models/report.
   styleUrl: './reports-dashboard.scss',
 })
 export class ReportsDashboard implements OnInit {
+  private reportService = inject(ReportService);
+  private toastService = inject(ToastService);
+
   dashboardSummary: DashboardSummary | null = null;
   latestReport: ScheduledReport | null = null;
   dailyStats: DailyStats[] = [];
   loading = false;
   error: string | null = null;
   generating = false;
-
-  constructor(private reportService: ReportService) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -69,12 +71,12 @@ export class ReportsDashboard implements OnInit {
       next: (report) => {
         this.generating = false;
         this.latestReport = report;
-        alert('Report generated successfully!');
+        this.toastService.success('Report generated successfully!');
         this.loadDashboardData();
       },
       error: (err) => {
         this.generating = false;
-        alert('Failed to generate report: ' + (err.error?.error || err.message));
+        this.toastService.error('Failed to generate report: ' + (err.error?.error || err.message));
         console.error('Error generating report:', err);
       },
     });
