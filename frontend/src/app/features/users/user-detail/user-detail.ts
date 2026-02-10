@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '@core/services/user.service';
 import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 import {
   User,
   UpdateUserRequest,
@@ -26,6 +27,7 @@ export class UserDetail implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private toastService = inject(ToastService);
+  private confirmationDialog = inject(ConfirmationDialogService);
 
   user = signal<User | null>(null);
   loading = signal(false);
@@ -140,17 +142,23 @@ export class UserDetail implements OnInit {
 
   deleteUser() {
     const username = this.user()!.username;
-    if (confirm(`Delete user "${username}"? This cannot be undone!`)) {
-      this.userService.deleteUser(this.user()!.id).subscribe({
-        next: (response) => {
-          this.toastService.success(response.message);
-          this.router.navigate(['/users']);
-        },
-        error: (err) => {
-          this.toastService.error('Failed to delete user: ' + (err.error?.error || err.message));
-        },
+    this.confirmationDialog
+      .confirmDelete(`Delete user "${username}"? This cannot be undone!`, 'Delete User')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.userService.deleteUser(this.user()!.id).subscribe({
+            next: (response) => {
+              this.toastService.success(response.message);
+              this.router.navigate(['/users']);
+            },
+            error: (err) => {
+              this.toastService.error(
+                'Failed to delete user: ' + (err.error?.error || err.message),
+              );
+            },
+          });
+        }
       });
-    }
   }
 
   formatDate(date?: string): string {

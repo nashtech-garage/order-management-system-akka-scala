@@ -8,6 +8,7 @@ import { ProductService } from '@core/services/product.service';
 import { Customer } from '@shared/models/customer.model';
 import { ProductResponse } from '@shared/models/product.model';
 import { Order, OrderStatus } from '@shared/models/order.model';
+import { ToastService } from '@shared/services/toast.service';
 
 describe('OrderForm', () => {
   let component: OrderForm;
@@ -16,6 +17,7 @@ describe('OrderForm', () => {
   let mockCustomerService: jasmine.SpyObj<CustomerService>;
   let mockProductService: jasmine.SpyObj<ProductService>;
   let mockRouter: jasmine.SpyObj<Router>;
+  let mockToastService: jasmine.SpyObj<ToastService>;
 
   const mockCustomers: Customer[] = [
     {
@@ -77,6 +79,12 @@ describe('OrderForm', () => {
     mockCustomerService = jasmine.createSpyObj('CustomerService', ['getCustomers']);
     mockProductService = jasmine.createSpyObj('ProductService', ['getProducts']);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockToastService = jasmine.createSpyObj('ToastService', [
+      'success',
+      'error',
+      'warning',
+      'info',
+    ]);
 
     await TestBed.configureTestingModule({
       imports: [OrderForm],
@@ -85,6 +93,7 @@ describe('OrderForm', () => {
         { provide: CustomerService, useValue: mockCustomerService },
         { provide: ProductService, useValue: mockProductService },
         { provide: Router, useValue: mockRouter },
+        { provide: ToastService, useValue: mockToastService },
       ],
     }).compileComponents();
 
@@ -255,7 +264,6 @@ describe('OrderForm', () => {
   describe('onSubmit', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      spyOn(window, 'alert');
     });
 
     it('should not submit when form is invalid', () => {
@@ -282,7 +290,7 @@ describe('OrderForm', () => {
         customerId: 1,
         items: [{ productId: 1, quantity: 2 }],
       });
-      expect(window.alert).toHaveBeenCalledWith('Order created successfully!');
+      expect(mockToastService.success).toHaveBeenCalledWith('Order created successfully!');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/orders', 1]);
       expect(component.submitting()).toBeFalse();
     });

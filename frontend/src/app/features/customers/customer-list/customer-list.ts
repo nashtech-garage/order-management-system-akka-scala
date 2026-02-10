@@ -6,6 +6,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { CustomerService } from '@core/services/customer.service';
 import { Customer } from '@shared/models/customer.model';
 import { Button } from '@shared/components/button/button';
+import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 
 @Component({
   selector: 'app-customer-list',
@@ -17,6 +19,8 @@ import { Button } from '@shared/components/button/button';
 export class CustomerList implements OnInit {
   private customerService = inject(CustomerService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
+  private confirmationDialog = inject(ConfirmationDialogService);
 
   customers = signal<Customer[]>([]);
   isLoading = signal<boolean>(false);
@@ -75,16 +79,21 @@ export class CustomerList implements OnInit {
   }
 
   deleteCustomer(id: number) {
-    if (confirm('Are you sure you want to delete this customer?')) {
-      this.customerService.deleteCustomer(id).subscribe({
-        next: () => {
-          this.loadCustomers();
-        },
-        error: (err) => {
-          this.error.set('Failed to delete customer.');
-          console.error(err);
-        },
+    this.confirmationDialog
+      .confirmDelete('Are you sure you want to delete this customer?', 'Delete Customer')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.customerService.deleteCustomer(id).subscribe({
+            next: () => {
+              this.toastService.success('Customer deleted successfully');
+              this.loadCustomers();
+            },
+            error: (err) => {
+              this.toastService.error('Failed to delete customer');
+              console.error(err);
+            },
+          });
+        }
       });
-    }
   }
 }

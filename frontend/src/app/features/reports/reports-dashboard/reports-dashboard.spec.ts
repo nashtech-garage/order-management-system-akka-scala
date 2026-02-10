@@ -4,11 +4,13 @@ import { ReportService } from '../services/report.service';
 import { of, throwError, Subject } from 'rxjs';
 import { DashboardSummary, ScheduledReport, DailyStats } from '../models/report.model';
 import { provideRouter } from '@angular/router';
+import { ToastService } from '@shared/services/toast.service';
 
 describe('ReportsDashboard', () => {
   let component: ReportsDashboard;
   let fixture: ComponentFixture<ReportsDashboard>;
   let mockReportService: jasmine.SpyObj<ReportService>;
+  let mockToastService: jasmine.SpyObj<ToastService>;
 
   const mockDashboardSummary: DashboardSummary = {
     totalOrders: 500,
@@ -64,6 +66,12 @@ describe('ReportsDashboard', () => {
       'getDailyStats',
       'generateReport',
     ]);
+    mockToastService = jasmine.createSpyObj('ToastService', [
+      'success',
+      'error',
+      'warning',
+      'info',
+    ]);
 
     mockReportService.getDashboardSummary.and.returnValue(of(mockDashboardSummary));
     mockReportService.getLatestReport.and.returnValue(of(mockLatestReport));
@@ -72,7 +80,11 @@ describe('ReportsDashboard', () => {
 
     await TestBed.configureTestingModule({
       imports: [ReportsDashboard],
-      providers: [{ provide: ReportService, useValue: mockReportService }, provideRouter([])],
+      providers: [
+        { provide: ReportService, useValue: mockReportService },
+        { provide: ToastService, useValue: mockToastService },
+        provideRouter([]),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ReportsDashboard);
@@ -210,13 +222,11 @@ describe('ReportsDashboard', () => {
       mockReportService.getLatestReport.and.returnValue(of(mockLatestReport));
       mockReportService.getDailyStats.and.returnValue(of(mockDailyStats));
 
-      spyOn(window, 'alert');
-
       component.generateReport();
 
       expect(component.generating).toBe(false);
       expect(component.latestReport).toEqual(mockLatestReport);
-      expect(window.alert).toHaveBeenCalledWith('Report generated successfully!');
+      expect(mockToastService.success).toHaveBeenCalledWith('Report generated successfully!');
       expect(mockReportService.getDashboardSummary).toHaveBeenCalled();
     });
 
@@ -224,13 +234,14 @@ describe('ReportsDashboard', () => {
       const errorResponse = { error: { error: 'Generation failed' } };
       mockReportService.generateReport.and.returnValue(throwError(() => errorResponse));
 
-      spyOn(window, 'alert');
       spyOn(console, 'error');
 
       component.generateReport();
 
       expect(component.generating).toBe(false);
-      expect(window.alert).toHaveBeenCalledWith('Failed to generate report: Generation failed');
+      expect(mockToastService.error).toHaveBeenCalledWith(
+        'Failed to generate report: Generation failed',
+      );
       expect(console.error).toHaveBeenCalledWith('Error generating report:', errorResponse);
     });
 
@@ -238,11 +249,11 @@ describe('ReportsDashboard', () => {
       const errorResponse = { message: 'Network error' };
       mockReportService.generateReport.and.returnValue(throwError(() => errorResponse));
 
-      spyOn(window, 'alert');
-
       component.generateReport();
 
-      expect(window.alert).toHaveBeenCalledWith('Failed to generate report: Network error');
+      expect(mockToastService.error).toHaveBeenCalledWith(
+        'Failed to generate report: Network error',
+      );
     });
   });
 

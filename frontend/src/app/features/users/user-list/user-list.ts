@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { UserService } from '@core/services/user.service';
 import { AuthService } from '@features/auth/auth.service';
 import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 import {
   User,
   UserSearchRequest,
@@ -25,6 +26,7 @@ export class UserList implements OnInit {
   private userService = inject(UserService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private confirmationDialog = inject(ConfirmationDialogService);
 
   users = signal<User[]>([]);
   stats = signal<UserStatsResponse | null>(null);
@@ -130,47 +132,55 @@ export class UserList implements OnInit {
   bulkActivate() {
     if (this.selectedUsers().length === 0) return;
 
-    if (confirm(`Activate ${this.selectedUsers().length} users?`)) {
-      this.userService
-        .bulkAction({
-          userIds: this.selectedUsers(),
-          action: 'activate',
-        })
-        .subscribe({
-          next: (response) => {
-            this.toastService.success(response.message);
-            this.selectedUsers.set([]);
-            this.loadUsers();
-            this.loadStats();
-          },
-          error: (err) => {
-            this.toastService.error('Failed: ' + (err.error?.error || err.message));
-          },
-        });
-    }
+    this.confirmationDialog
+      .confirmAction(`Activate ${this.selectedUsers().length} users?`)
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.userService
+            .bulkAction({
+              userIds: this.selectedUsers(),
+              action: 'activate',
+            })
+            .subscribe({
+              next: (response) => {
+                this.toastService.success(response.message);
+                this.selectedUsers.set([]);
+                this.loadUsers();
+                this.loadStats();
+              },
+              error: (err) => {
+                this.toastService.error('Failed: ' + (err.error?.error || err.message));
+              },
+            });
+        }
+      });
   }
 
   bulkSuspend() {
     if (this.selectedUsers().length === 0) return;
 
-    if (confirm(`Suspend ${this.selectedUsers().length} users?`)) {
-      this.userService
-        .bulkAction({
-          userIds: this.selectedUsers(),
-          action: 'suspend',
-        })
-        .subscribe({
-          next: (response) => {
-            this.toastService.success(response.message);
-            this.selectedUsers.set([]);
-            this.loadUsers();
-            this.loadStats();
-          },
-          error: (err) => {
-            this.toastService.error('Failed: ' + (err.error?.error || err.message));
-          },
-        });
-    }
+    this.confirmationDialog
+      .confirmWarning(`Suspend ${this.selectedUsers().length} users?`, 'Suspend Users')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.userService
+            .bulkAction({
+              userIds: this.selectedUsers(),
+              action: 'suspend',
+            })
+            .subscribe({
+              next: (response) => {
+                this.toastService.success(response.message);
+                this.selectedUsers.set([]);
+                this.loadUsers();
+                this.loadStats();
+              },
+              error: (err) => {
+                this.toastService.error('Failed: ' + (err.error?.error || err.message));
+              },
+            });
+        }
+      });
   }
 
   bulkDelete() {
@@ -182,24 +192,31 @@ export class UserList implements OnInit {
       return;
     }
 
-    if (confirm(`Delete ${this.selectedUsers().length} users? This cannot be undone!`)) {
-      this.userService
-        .bulkAction({
-          userIds: this.selectedUsers(),
-          action: 'delete',
-        })
-        .subscribe({
-          next: (response) => {
-            this.toastService.success(response.message);
-            this.selectedUsers.set([]);
-            this.loadUsers();
-            this.loadStats();
-          },
-          error: (err) => {
-            this.toastService.error('Failed: ' + (err.error?.error || err.message));
-          },
-        });
-    }
+    this.confirmationDialog
+      .confirmDelete(
+        `Delete ${this.selectedUsers().length} users? This cannot be undone!`,
+        'Delete Users',
+      )
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.userService
+            .bulkAction({
+              userIds: this.selectedUsers(),
+              action: 'delete',
+            })
+            .subscribe({
+              next: (response) => {
+                this.toastService.success(response.message);
+                this.selectedUsers.set([]);
+                this.loadUsers();
+                this.loadStats();
+              },
+              error: (err) => {
+                this.toastService.error('Failed: ' + (err.error?.error || err.message));
+              },
+            });
+        }
+      });
   }
 
   deleteUser(user: User) {
@@ -209,18 +226,24 @@ export class UserList implements OnInit {
       return;
     }
 
-    if (confirm(`Delete user "${user.username}"? This cannot be undone!`)) {
-      this.userService.deleteUser(user.id).subscribe({
-        next: (response) => {
-          this.toastService.success(response.message);
-          this.loadUsers();
-          this.loadStats();
-        },
-        error: (err) => {
-          this.toastService.error('Failed to delete user: ' + (err.error?.error || err.message));
-        },
+    this.confirmationDialog
+      .confirmDelete(`Delete user "${user.username}"? This cannot be undone!`, 'Delete User')
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.userService.deleteUser(user.id).subscribe({
+            next: (response) => {
+              this.toastService.success(response.message);
+              this.loadUsers();
+              this.loadStats();
+            },
+            error: (err) => {
+              this.toastService.error(
+                'Failed to delete user: ' + (err.error?.error || err.message),
+              );
+            },
+          });
+        }
       });
-    }
   }
 
   nextPage() {

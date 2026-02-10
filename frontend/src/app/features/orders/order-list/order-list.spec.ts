@@ -4,12 +4,16 @@ import { of, throwError } from 'rxjs';
 import { OrderList } from './order-list';
 import { OrderService } from '../order.service';
 import { Order, OrderStatus } from '@shared/models/order.model';
+import { ToastService } from '@shared/services/toast.service';
+import { ConfirmationDialogService } from '@shared/services/confirmation-dialog.service';
 
 describe('OrderList', () => {
   let component: OrderList;
   let fixture: ComponentFixture<OrderList>;
   let mockOrderService: jasmine.SpyObj<OrderService>;
   let mockRouter: jasmine.SpyObj<Router>;
+  let mockToastService: jasmine.SpyObj<ToastService>;
+  let mockConfirmationDialog: jasmine.SpyObj<ConfirmationDialogService>;
 
   const mockOrders: Order[] = [
     {
@@ -53,12 +57,25 @@ describe('OrderList', () => {
       'completeOrder',
     ]);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockToastService = jasmine.createSpyObj('ToastService', [
+      'success',
+      'error',
+      'warning',
+      'info',
+    ]);
+    mockConfirmationDialog = jasmine.createSpyObj('ConfirmationDialogService', [
+      'confirmAction',
+      'confirmDelete',
+      'confirmWarning',
+    ]);
 
     await TestBed.configureTestingModule({
       imports: [OrderList],
       providers: [
         { provide: OrderService, useValue: mockOrderService },
         { provide: Router, useValue: mockRouter },
+        { provide: ToastService, useValue: mockToastService },
+        { provide: ConfirmationDialogService, useValue: mockConfirmationDialog },
       ],
     }).compileComponents();
 
@@ -188,24 +205,20 @@ describe('OrderList', () => {
   });
 
   describe('confirmOrder', () => {
-    beforeEach(() => {
-      spyOn(window, 'confirm').and.returnValue(true);
-      spyOn(window, 'alert');
-    });
-
     it('should confirm order successfully', () => {
+      mockConfirmationDialog.confirmAction.and.returnValue(of(true));
       mockOrderService.confirmOrder.and.returnValue(of({ message: 'Confirmed' }));
 
       component.confirmOrder(1);
 
-      expect(window.confirm).toHaveBeenCalledWith('Confirm this order?');
+      expect(mockConfirmationDialog.confirmAction).toHaveBeenCalledWith('Confirm this order?');
       expect(mockOrderService.confirmOrder).toHaveBeenCalledWith(1);
-      expect(window.alert).toHaveBeenCalledWith('Order confirmed successfully!');
+      expect(mockToastService.success).toHaveBeenCalledWith('Order confirmed successfully!');
       expect(mockOrderService.getOrders).toHaveBeenCalled();
     });
 
     it('should not confirm when user cancels', () => {
-      (window.confirm as jasmine.Spy).and.returnValue(false);
+      mockConfirmationDialog.confirmAction.and.returnValue(of(false));
 
       component.confirmOrder(1);
 
@@ -213,22 +226,21 @@ describe('OrderList', () => {
     });
 
     it('should handle error when confirm fails', () => {
+      mockConfirmationDialog.confirmAction.and.returnValue(of(true));
       const errorResponse = { error: { error: 'Cannot confirm' }, message: 'Error' };
       mockOrderService.confirmOrder.and.returnValue(throwError(() => errorResponse));
 
       component.confirmOrder(1);
 
-      expect(window.alert).toHaveBeenCalledWith('Failed to confirm order: Cannot confirm');
+      expect(mockToastService.error).toHaveBeenCalledWith(
+        'Failed to confirm order: Cannot confirm',
+      );
     });
   });
 
   describe('payOrder', () => {
-    beforeEach(() => {
-      spyOn(window, 'confirm').and.returnValue(true);
-      spyOn(window, 'alert');
-    });
-
     it('should process payment successfully', () => {
+      mockConfirmationDialog.confirmAction.and.returnValue(of(true));
       const paymentInfo = {
         paymentId: 'pay_123',
         orderId: 1,
@@ -239,54 +251,54 @@ describe('OrderList', () => {
 
       component.payOrder(1);
 
-      expect(window.confirm).toHaveBeenCalledWith('Process payment for this order?');
+      expect(mockConfirmationDialog.confirmAction).toHaveBeenCalledWith(
+        'Process payment for this order?',
+      );
       expect(mockOrderService.payOrder).toHaveBeenCalledWith(1, 'credit_card');
-      expect(window.alert).toHaveBeenCalledWith('Payment PAID: Payment successful');
+      expect(mockToastService.success).toHaveBeenCalledWith('Payment PAID: Payment successful');
       expect(mockOrderService.getOrders).toHaveBeenCalled();
     });
 
     it('should handle payment error', () => {
+      mockConfirmationDialog.confirmAction.and.returnValue(of(true));
       const errorResponse = { error: { error: 'Payment failed' }, message: 'Error' };
       mockOrderService.payOrder.and.returnValue(throwError(() => errorResponse));
 
       component.payOrder(1);
 
-      expect(window.alert).toHaveBeenCalledWith('Payment failed: Payment failed');
+      expect(mockToastService.error).toHaveBeenCalledWith('Payment failed: Payment failed');
     });
   });
 
   describe('cancelOrder', () => {
-    beforeEach(() => {
-      spyOn(window, 'confirm').and.returnValue(true);
-      spyOn(window, 'alert');
-    });
-
     it('should cancel order successfully', () => {
+      mockConfirmationDialog.confirmWarning.and.returnValue(of(true));
       mockOrderService.cancelOrder.and.returnValue(of({ message: 'Cancelled' }));
 
       component.cancelOrder(1);
 
-      expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to cancel this order?');
+      expect(mockConfirmationDialog.confirmWarning).toHaveBeenCalledWith(
+        'Are you sure you want to cancel this order?',
+        'Cancel Order',
+      );
       expect(mockOrderService.cancelOrder).toHaveBeenCalledWith(1);
-      expect(window.alert).toHaveBeenCalledWith('Order cancelled successfully!');
+      expect(mockToastService.success).toHaveBeenCalledWith('Order cancelled successfully!');
       expect(mockOrderService.getOrders).toHaveBeenCalled();
     });
   });
 
   describe('completeOrder', () => {
-    beforeEach(() => {
-      spyOn(window, 'confirm').and.returnValue(true);
-      spyOn(window, 'alert');
-    });
-
     it('should complete order successfully', () => {
+      mockConfirmationDialog.confirmAction.and.returnValue(of(true));
       mockOrderService.completeOrder.and.returnValue(of({ message: 'Completed' }));
 
       component.completeOrder(1);
 
-      expect(window.confirm).toHaveBeenCalledWith('Mark this order as completed?');
+      expect(mockConfirmationDialog.confirmAction).toHaveBeenCalledWith(
+        'Mark this order as completed?',
+      );
       expect(mockOrderService.completeOrder).toHaveBeenCalledWith(1);
-      expect(window.alert).toHaveBeenCalledWith('Order completed successfully!');
+      expect(mockToastService.success).toHaveBeenCalledWith('Order completed successfully!');
       expect(mockOrderService.getOrders).toHaveBeenCalled();
     });
   });
